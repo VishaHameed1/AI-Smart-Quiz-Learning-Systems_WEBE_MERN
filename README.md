@@ -382,6 +382,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ---
 
-**Made with ❤️ by Person A | AI Smart Quiz System**
+**Made with ❤️ by Person A-Visha Hameed| AI Smart Quiz System**
 
 *Last Updated: May 2024*
