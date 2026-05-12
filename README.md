@@ -1,5 +1,5 @@
 
-# 🧠 AI Smart Quiz System - Person A (Quiz & AI Core)
+# 🧠 AI Smart Quiz System 
 
 [![Node.js Version](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-6.0-green.svg)](https://www.mongodb.com/)
