@@ -9,7 +9,7 @@
 
 ## 📋 Project Overview
 
-AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Google Gemini AI** to generate dynamic questions and adjust difficulty based on user performance. This repository contains **Person A's modules** - Quiz Core, AI Question Generation, Adaptive Difficulty, and Analytics.
+AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Google Gemini AI** to generate dynamic questions and adjust difficulty based on user performance. This repository contains **different modules** - Quiz Core, AI Question Generation, Adaptive Difficulty, and Analytics.
 
 ### 👥 Project Team
 
