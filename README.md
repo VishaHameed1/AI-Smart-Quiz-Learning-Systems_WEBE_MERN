@@ -11,6 +11,13 @@
 
 AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Google Gemini AI** to generate dynamic questions and adjust difficulty based on user performance. This repository contains **Person A's modules** - Quiz Core, AI Question Generation, Adaptive Difficulty, and Analytics.
 
+### 👥 Project Team
+
+| Person | Role | Modules |
+|--------|------|---------|
+| **Visha Hameed** | Person A | Quiz Core, AI Generation, Adaptive Difficulty, Analytics |
+| **Hadiqa Ehsan** | Person B | Authentication, User Dashboard, Progress Tracking, Spaced Repetition |
+
 ## ✨ Features (Person A)
 
 ### 🎯 Quiz Management
@@ -20,13 +27,14 @@ AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Googl
 - ✅ Bulk question upload (JSON/CSV)
 - ✅ Duplicate quiz functionality
 
-### 🤖 AI Question Generation
+### 🤖 AI Question Generation (Google Gemini)
 - ✅ Generate questions from topic name
 - ✅ Generate questions from text/PDF content
 - ✅ Generate questions from URL
 - ✅ AI-powered answer explanations
 - ✅ Question improvement (clarify, expand, simplify)
 - ✅ Flashcard generation from topics
+- ✅ **Free API access** - No credit card required
 
 ### 📊 Adaptive Difficulty
 - ✅ Elo rating system for questions
@@ -48,9 +56,9 @@ AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Googl
 |-----------|------------|
 | **Backend** | Node.js, Express.js |
 | **Database** | MongoDB, Mongoose ODM |
-| **AI/ML** | Google Gemini API |
+| **AI/ML** | Google Gemini API (Free) |
 | **Frontend** | React 18, Tailwind CSS |
-| **State Management** | Context API, useReducer |
+| **State Management** | Context API, Redux Toolkit |
 | **HTTP Client** | Axios |
 | **Charts** | Recharts |
 | **Authentication** | JWT (shared with Person B) |
@@ -64,21 +72,29 @@ ai-quiz-system-person-a/
 │   │   ├── Quiz.js              # Quiz schema
 │   │   ├── Question.js          # Question schema
 │   │   ├── Attempt.js           # Attempt schema
+│   │   ├── User.model.js        # User schema (Person B)
+│   │   ├── Progress.model.js    # Progress tracking (Person B)
+│   │   ├── ReviewQueue.model.js # Spaced repetition (Person B)
 │   │   └── AIQuestionCache.js   # AI response cache
 │   ├── controllers/
 │   │   ├── quizController.js    # Quiz CRUD
 │   │   ├── questionController.js# Question management
 │   │   ├── attemptController.js # Quiz taking
 │   │   ├── aiController.js      # Gemini AI integration
-│   │   └── adaptiveController.js# Adaptive logic
+│   │   ├── adaptiveController.js# Adaptive logic
+│   │   ├── auth.controller.js   # Authentication (Person B)
+│   │   └── user.controller.js   # User management (Person B)
 │   ├── routes/
 │   │   ├── quizRoutes.js
 │   │   ├── questionRoutes.js
 │   │   ├── attemptRoutes.js
 │   │   ├── aiRoutes.js
-│   │   └── adaptiveRoutes.js
+│   │   ├── adaptiveRoutes.js
+│   │   ├── auth.routes.js       # Auth routes (Person B)
+│   │   └── user.routes.js       # User routes (Person B)
 │   ├── middleware/
 │   │   ├── auth.js              # JWT auth
+│   │   ├── auth.middleware.js   # Auth middleware (Person B)
 │   │   └── validation.js        # Input validation
 │   ├── utils/
 │   │   ├── constants.js
@@ -94,22 +110,36 @@ ai-quiz-system-person-a/
 │   │   │   │   ├── QuizList.jsx
 │   │   │   │   ├── TakeQuiz.jsx
 │   │   │   │   └── QuizResult.jsx
-│   │   │   └── teacher/
-│   │   │       ├── CreateQuiz.jsx
-│   │   │       ├── ManageQuestions.jsx
-│   │   │       └── AIQuestionGen.jsx
+│   │   │   ├── teacher/
+│   │   │   │   ├── CreateQuiz.jsx
+│   │   │   │   ├── ManageQuestions.jsx
+│   │   │   │   └── AIQuestionGen.jsx
+│   │   │   ├── LoginPage.jsx    (Person B)
+│   │   │   ├── RegisterPage.jsx (Person B)
+│   │   │   └── DashboardPage.jsx (Person B)
 │   │   ├── components/
 │   │   │   ├── quiz/
 │   │   │   │   ├── QuestionCard.jsx
 │   │   │   │   ├── Timer.jsx
 │   │   │   │   ├── ProgressBar.jsx
 │   │   │   │   └── ResultChart.jsx
+│   │   │   ├── common/
+│   │   │   │   ├── Navbar.jsx
+│   │   │   │   ├── PrivateRoute.jsx
+│   │   │   │   └── LoadingSpinner.jsx
 │   │   │   └── forms/
 │   │   ├── context/
+│   │   │   ├── AuthContext.jsx  (Person B)
 │   │   │   └── QuizContext.jsx
 │   │   ├── hooks/
 │   │   │   ├── useTimer.js
-│   │   │   └── useAdaptiveQuiz.js
+│   │   │   ├── useAdaptiveQuiz.js
+│   │   │   └── useAuth.js       (Person B)
+│   │   ├── store/
+│   │   │   ├── store.js
+│   │   │   └── slices/
+│   │   │       ├── authSlice.js
+│   │   │       └── progressSlice.js
 │   │   └── services/
 │   │       ├── api.js
 │   │       ├── quizService.js
@@ -130,6 +160,7 @@ ai-quiz-system-person-a/
 | Node.js | 18.x or higher | [Download](https://nodejs.org/) |
 | MongoDB | 6.0 or higher | [Download](https://www.mongodb.com/try/download/community) |
 | Git | Latest | [Download](https://git-scm.com/downloads) |
+| Docker (Optional) | 20.10+ | [Download](https://www.docker.com/) |
 
 ### Step 1: Get Gemini API Key (FREE)
 
@@ -143,12 +174,14 @@ https://aistudio.google.com/
 # 5. Copy your key (starts with AIza...)
 ```
 
+**⚠️ Note:** Gemini API is completely free! No credit card required.
+
 ### Step 2: Clone & Install
 
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/ai-quiz-system-person-a.git
-cd ai-quiz-system-person-a
+git clone https://github.com/VishaHameed1/AI-Smart-Quiz-Learning-Systems_WEBE_MERN.git
+cd AI-Smart-Quiz-Learning-Systems_WEBE_MERN
 
 # Install backend dependencies
 cd server
@@ -171,11 +204,17 @@ NODE_ENV=development
 # Database
 MONGODB_URI=mongodb://localhost:27017/ai-quiz-system
 
-# JWT (same as Person B)
-JWT_SECRET=your-super-secret-jwt-key
+# JWT Secret (shared with Person B)
+JWT_SECRET=your-super-secret-jwt-key-change-this
 
-# Google Gemini API
+# Google Gemini API (FREE)
 GEMINI_API_KEY=your-gemini-api-key-here
+
+# Email Configuration (Optional)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
 
 # Frontend URL
 CLIENT_URL=http://localhost:3000
@@ -184,20 +223,26 @@ CLIENT_URL=http://localhost:3000
 ### Step 4: Run the Application
 
 ```bash
-# Terminal 1 - Start Backend
+# Terminal 1 - Start MongoDB (using Docker)
+docker run -d --name mongodb -p 27017:27017 mongo:6.0
+
+# Terminal 2 - Start Backend
 cd server
 npm run dev
 
-# Terminal 2 - Start Frontend
+# Terminal 3 - Start Frontend
 cd client
 npm run dev
 ```
 
 ### Step 5: Access the Application
 
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:5000/api
-- **MongoDB:** mongodb://localhost:27017
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| **Frontend** | http://localhost:3000 | - |
+| **Backend API** | http://localhost:5000/api | - |
+| **MongoDB** | mongodb://localhost:27017 | - |
+| **MongoDB Express** | http://localhost:8081 | admin/admin123 |
 
 ## 📡 API Endpoints (Person A)
 
@@ -229,7 +274,7 @@ GET    /api/attempts/:attemptId/results     // Get results
 GET    /api/attempts/user/my-attempts       // Get user attempts
 ```
 
-### AI APIs (Gemini)
+### AI APIs (Gemini - FREE)
 ```javascript
 POST   /api/ai/generate-questions      // Generate from topic
 POST   /api/ai/generate-from-text      // Generate from text
@@ -274,15 +319,14 @@ headers: {
 }
 ```
 
-### Shared User Model (from Person B)
-```javascript
-{
-  _id: ObjectId,
-  name: String,
-  email: String,
-  role: 'student' | 'teacher' | 'admin'
-}
-```
+### API Endpoints from Person B
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | User registration |
+| POST | `/api/auth/login` | User login |
+| GET | `/api/users/profile` | Get user profile |
+| GET | `/api/progress` | Get learning progress |
 
 ## 🧪 Testing
 
@@ -294,14 +338,21 @@ npm test
 # Run frontend tests
 cd client
 npm test
+
+# Test API with Thunder Client (VS Code extension)
+# Or use curl:
+curl -X POST http://localhost:5000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","email":"test@example.com","password":"123456"}'
 ```
 
 ## 📊 API Response Examples
 
-### Generate Questions Response
+### Generate Questions Response (Gemini)
 ```json
 {
   "success": true,
+  "message": "5 questions generated successfully",
   "data": [
     {
       "question": "What is JavaScript?",
@@ -309,9 +360,11 @@ npm test
       "correctAnswer": "A programming language",
       "explanation": "JavaScript is a programming language used for web development.",
       "difficulty": "medium",
-      "topic": "Programming"
+      "topic": "Programming",
+      "aiGenerated": true
     }
-  ]
+  ],
+  "source": "gemini-ai"
 }
 ```
 
@@ -337,19 +390,46 @@ npm test
 ### Gemini API Error
 ```bash
 Error: API key not valid
-Solution: Regenerate API key from Google AI Studio
+Solution: 
+1. Go to https://aistudio.google.com/
+2. Generate new API key
+3. Update .env file
 ```
 
 ### MongoDB Connection Error
 ```bash
 Error: MongooseServerSelectionError
-Solution: Ensure MongoDB is running: `net start MongoDB` (Windows) or `sudo systemctl start mongod` (Linux)
+Solution: 
+# Windows
+net start MongoDB
+
+# Linux
+sudo systemctl start mongod
+
+# Docker
+docker run -d --name mongodb -p 27017:27017 mongo:6.0
 ```
 
 ### Port Already in Use
 ```bash
 Error: listen EADDRINUSE: address already in use :::5000
-Solution: Change PORT in .env file or kill process using the port
+Solution: 
+# Change PORT in .env file
+PORT=5001
+
+# OR kill process using the port
+netstat -ano | findstr :5000
+taskkill /PID <pid> /F
+```
+
+### 401 Unauthorized Error
+```bash
+Error: Please authenticate
+Solution:
+1. Make sure you're logged in
+2. Check if token is in localStorage
+3. Verify JWT_SECRET matches between Person A and Person B
+4. Token might be expired, login again
 ```
 
 ## 📈 Future Enhancements
@@ -360,15 +440,18 @@ Solution: Change PORT in .env file or kill process using the port
 - [ ] Integration with YouTube for video-based questions
 - [ ] Advanced analytics dashboard with D3.js
 - [ ] Mobile app (React Native)
+- [ ] Offline quiz mode
+- [ ] Social sharing of quiz results
 
 ## 🤝 Integration with Person B
 
-Person B is responsible for:
-- User authentication & authorization
-- User profiles & dashboards
-- Progress tracking & history
-- Spaced repetition system
-- Notifications & email
+**Person B (Hadiqa Ehsan)** is responsible for:
+- 🔐 User authentication & authorization
+- 👤 User profiles & dashboards
+- 📊 Progress tracking & history
+- 🔄 Spaced repetition system
+- 📧 Notifications & email
+- 🎮 Gamification & leaderboards
 
 ## 📄 License
 
@@ -376,12 +459,37 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Google Gemini AI for free API access
-- MongoDB Atlas for database hosting
-- Open source community
+- **Google Gemini AI** - Free API access for question generation
+- **MongoDB Atlas** - Database hosting (optional)
+- **Open Source Community** - For amazing libraries
+- **Institute of Space and Technology, Islamabad** - Institutional Support
+
+## 📞 Contact
+
+| Person | Role | Contact |
+|--------|------|---------|
+| **Visha Hameed** | Person A | vishahameed666@gmail.com |
+| **Hadiqa Ehsan** | Person B | hadiqaehsan111@gmail.com |
 
 ---
 
-**Made with ❤️ by Person A-Visha Hameed| AI Smart Quiz System**
+**Made with ❤️ by Visha Hameed & Hadiqa Ehsan | AI Smart Quiz System**
 
 *Last Updated: May 2024*
+```
+
+---
+
+## ✅ Key Updates Made:
+
+| Section | Change |
+|---------|--------|
+| Project Overview | Added team division table |
+| Tech Stack | Added Redux Toolkit |
+| Project Structure | Added Person B files |
+| Installation | Added Docker MongoDB command |
+| API Endpoints | Added Person B endpoints |
+| Troubleshooting | Added 401 error solution |
+| Contact | Added both team members |
+| Acknowledgments | Added supervisor and university |
+
