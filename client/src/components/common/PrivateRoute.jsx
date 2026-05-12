@@ -1,18 +1,19 @@
 ﻿import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';   // ✅ Fixed path
 
-const PrivateRoute = ({ children, allowedRoles }) => {
-  const token = localStorage.getItem('token');
-  const userRole = localStorage.getItem('userRole');
-  
+
+const PrivateRoute = ({ children, allowedRoles = [] }) => {
+  const { user, token } = useAuth();
+
   if (!token) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
-  
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
-    return <Navigate to="/" />;
+
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/dashboard" replace />;
   }
-  
+
   return children;
 };
 

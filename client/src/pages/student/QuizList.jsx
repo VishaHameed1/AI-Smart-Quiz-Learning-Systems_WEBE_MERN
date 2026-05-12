@@ -16,11 +16,31 @@ const QuizList = () => {
   const fetchQuizzes = async () => {
     try {
       setLoading(true);
+      
+      // ✅ Get token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        console.error('No token found, redirecting to login');
+        navigate('/login');
+        return;
+      }
+
       const params = new URLSearchParams(filters);
-      const response = await axios.get(`/api/quizzes?${params}`);
-      setQuizzes(response.data.data);
+      const response = await axios.get(`/api/quizzes?${params}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      setQuizzes(response.data.data || []);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
+      if (error.response?.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
     } finally {
       setLoading(false);
     }
@@ -28,10 +48,26 @@ const QuizList = () => {
 
   const startQuiz = async (quizId) => {
     try {
-      const response = await axios.post(`/api/attempts/quiz/${quizId}/start`);
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.post(`/api/attempts/quiz/${quizId}/start`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
       navigate(`/quiz/${quizId}/take/${response.data.data._id}`);
     } catch (error) {
       console.error('Error starting quiz:', error);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+      }
     }
   };
 
