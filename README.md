@@ -1,5 +1,5 @@
 
-# 🧠 AI Smart Quiz System - Person A (Quiz & AI Core)
+# 🧠 AI Smart Quiz System 
 
 [![Node.js Version](https://img.shields.io/badge/Node.js-18.x-green.svg)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-6.0-green.svg)](https://www.mongodb.com/)
@@ -9,7 +9,7 @@
 
 ## 📋 Project Overview
 
-AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Google Gemini AI** to generate dynamic questions and adjust difficulty based on user performance. This repository contains **Person A's modules** - Quiz Core, AI Question Generation, Adaptive Difficulty, and Analytics.
+AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Google Gemini AI** to generate dynamic questions and adjust difficulty based on user performance. This repository contains **different modules** - Quiz Core, AI Question Generation, Adaptive Difficulty, and Analytics.
 
 ### 👥 Project Team
 
