@@ -2,13 +2,15 @@
 
 const ForgotPassword = () => {
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Forgot Password</h2>
-      <p className="mb-4">Enter your email to reset password</p>
-      <form>
-        <input type="email" placeholder="Email" className="w-full border p-2 rounded mb-4" />
-        <button className="w-full bg-blue-600 text-white p-2 rounded">Send Reset Link</button>
-      </form>
+    <div className="mx-auto max-w-md px-4 py-8 sm:px-6 lg:px-8">
+      <div className="glass-panel p-8">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-5">Forgot Password</h2>
+        <p className="text-slate-600 mb-6">Enter your email to receive password reset instructions.</p>
+        <form className="space-y-4">
+          <input type="email" placeholder="Email" className="glass-input" />
+          <button className="glass-button w-full text-center">Send Reset Link</button>
+        </form>
+      </div>
     </div>
   );
 };

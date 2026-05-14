@@ -72,6 +72,7 @@ import HomePage from './pages/HomePage';
 
 // ========== COMMON COMPONENTS ==========
 import Navbar from './components/common/Navbar';
+import Footer from './components/common/Footer';
 import Sidebar from './components/common/Sidebar';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import ToastNotification from './components/common/ToastNotification';
@@ -81,11 +82,11 @@ function App() {
     <Router>
       <AuthProvider>
         <QuizProvider>
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-transparent text-slate-900">
             <Navbar />
             <div className="flex">
               <Sidebar />
-              <main className="flex-1 container mx-auto px-4 py-8">
+              <main className="flex-1 min-h-screen px-4 py-8 xl:px-8">
                 <Routes>
                   {/* ========== PUBLIC ROUTES ========== */}
                   <Route path="/" element={<LandingPage />} />
@@ -308,6 +309,7 @@ function App() {
                 </Routes>
               </main>
             </div>
+            <Footer />
             <ToastNotification />
           </div>
         </QuizProvider>

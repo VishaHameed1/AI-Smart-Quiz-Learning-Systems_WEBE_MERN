@@ -46,3 +46,4 @@ volumes/
 # Testing
 coverage/
 .nyc_output/
+.superdesign

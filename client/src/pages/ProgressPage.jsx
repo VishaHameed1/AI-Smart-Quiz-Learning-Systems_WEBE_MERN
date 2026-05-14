@@ -9,37 +9,41 @@ const ProgressPage = () => {
   if (error) return <div className="text-center text-red-600 py-8">{error}</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">My Learning Progress</h1>
-      
-      {progress && progress.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          No progress data yet. Start taking quizzes to see your progress!
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <div className="glass-panel p-8">
+          <h1 className="text-3xl font-semibold text-slate-950">My Learning Progress</h1>
+          <p className="mt-3 text-slate-600">Track mastery, review habits, and stay on pace with your learning goals.</p>
         </div>
-      )}
 
-      <div className="space-y-4">
-        {progress && progress.map((item, idx) => (
-          <div key={idx} className="bg-white p-4 rounded-lg shadow">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-semibold text-lg">{item.topic}</h3>
-              <span className="text-sm text-gray-500">
-                Last practiced: {new Date(item.lastPracticed).toLocaleDateString()}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div 
-                className="bg-green-600 h-2.5 rounded-full" 
-                style={{ width: `${item.masteryScore}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between mt-2 text-sm text-gray-600">
-              <span>Mastery: {item.masteryScore}%</span>
-              <span>Questions: {item.questionsAttempted}</span>
-              <span>Correct: {item.correctAnswers}</span>
-            </div>
+        {progress && progress.length === 0 ? (
+          <div className="glass-panel p-8 text-center text-slate-600">
+            No progress data yet. Start taking quizzes to see your progress!
           </div>
-        ))}
+        ) : (
+          <div className="grid gap-6">
+            {progress?.map((item, idx) => (
+              <div key={idx} className="glass-panel p-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900">{item.topic}</h3>
+                    <p className="text-sm text-slate-500 mt-1">Last practiced: {new Date(item.lastPracticed).toLocaleDateString()}</p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">Mastery {item.masteryScore}%</span>
+                </div>
+
+                <div className="mt-5 rounded-full bg-slate-100 h-3 overflow-hidden">
+                  <div className="h-3 rounded-full bg-gradient-to-r from-sky-500 to-violet-500" style={{ width: `${item.masteryScore}%` }} />
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
+                  <span>Questions answered: {item.questionsAttempted}</span>
+                  <span>Correct: {item.correctAnswers}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

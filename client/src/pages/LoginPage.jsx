@@ -25,40 +25,53 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow">
-      <h1 className="text-2xl font-bold text-center mb-6">Login</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-lg p-2"
-            required
-          />
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.08),_transparent_18%),radial-gradient(circle_at_top_right,_rgba(167,139,250,0.08),_transparent_22%),#eef2ff] px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-md">
+        <div className="glass-panel p-8">
+          <div className="text-center">
+            <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Welcome back</p>
+            <h1 className="mt-4 text-3xl font-semibold text-slate-950">Login to your account</h1>
+            <p className="mt-3 text-sm text-slate-600">Access quizzes, review sessions, and progress insights.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="glass-input"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="glass-input"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="glass-button w-full text-center disabled:opacity-60"
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-slate-500">
+            Don&apos;t have an account?{' '}
+            <Link to="/register" className="font-semibold text-slate-900 hover:text-indigo-600">
+              Register
+            </Link>
+          </p>
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-lg p-2"
-            required
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-      <p className="text-center text-sm text-gray-600 mt-4">
-        Don't have an account? <Link to="/register" className="text-blue-600">Register</Link>
-      </p>
+      </div>
     </div>
   );
 };

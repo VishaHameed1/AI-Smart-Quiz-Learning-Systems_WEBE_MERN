@@ -48,21 +48,32 @@ const TakeQuiz = () => {
   if (!questions || !questions.length) return <div className="text-center mt-10">Loading questions...</div>;
 
   return (
-    <div className="container mx-auto p-8 max-w-3xl">
-      <div className="mb-6 flex justify-between items-center bg-white p-4 rounded shadow-sm">
-        <ProgressBar current={currentIndex + 1} total={questions.length} />
-        {/* Timer component can be added here if needed */}
-      </div>
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl space-y-6">
+        <div className="glass-panel p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Question {currentIndex + 1} of {questions.length}</p>
+              <h1 className="mt-2 text-2xl font-semibold text-slate-950">Taking Quiz</h1>
+            </div>
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm text-slate-700">
+              {Math.round(((currentIndex + 1) / questions.length) * 100)}% Complete
+            </div>
+          </div>
+          <div className="mt-4 h-2 rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className="h-2 bg-gradient-to-r from-sky-500 to-violet-500 transition-all duration-300"
+              style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+            />
+          </div>
+        </div>
 
-      <QuestionCard 
-        question={questions[currentIndex]}
-        onSubmit={handleAnswer}
-        currentNumber={currentIndex + 1}
-        totalQuestions={questions.length}
-      />
-      
-      <div className="mt-4 text-center text-gray-500">
-        Question {currentIndex + 1} of {questions.length}
+        <QuestionCard
+          question={questions[currentIndex]}
+          onSubmit={handleAnswer}
+          currentNumber={currentIndex + 1}
+          totalQuestions={questions.length}
+        />
       </div>
     </div>
   );

@@ -2,13 +2,15 @@
 
 const TwoFactorAuth = () => {
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Two Factor Authentication</h2>
-      <p>Enter your 2FA code</p>
-      <form>
-        <input type="text" placeholder="Enter 6-digit code" className="w-full border p-2 rounded mb-4" />
-        <button className="w-full bg-blue-600 text-white p-2 rounded">Verify</button>
-      </form>
+    <div className="mx-auto max-w-md px-4 py-8 sm:px-6 lg:px-8">
+      <div className="glass-panel p-8">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-4">Two-Factor Authentication</h2>
+        <p className="text-slate-600 mb-6">Enter the 6-digit code from your authenticator app.</p>
+        <form className="space-y-4">
+          <input type="text" placeholder="Enter 6-digit code" className="glass-input" />
+          <button className="glass-button w-full text-center">Verify</button>
+        </form>
+      </div>
     </div>
   );
 };

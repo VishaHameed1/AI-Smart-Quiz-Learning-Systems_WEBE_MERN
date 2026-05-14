@@ -99,73 +99,75 @@ const QuizList = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Available Quizzes</h1>
-        <p className="text-gray-600 mt-2">Test your knowledge with our interactive quizzes</p>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Filter className="w-5 h-5 text-gray-500" />
-            <span className="text-sm font-medium">Filters:</span>
-          </div>
-          
-          <select
-            className="border rounded-lg px-3 py-2 text-sm"
-            value={filters.type}
-            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-          >
-            <option value="">All Types</option>
-            <option value="timed">Timed</option>
-            <option value="practice">Practice</option>
-            <option value="adaptive">Adaptive</option>
-            <option value="competitive">Competitive</option>
-          </select>
-          
-          <select
-            className="border rounded-lg px-3 py-2 text-sm"
-            value={filters.difficulty}
-            onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
-          >
-            <option value="">All Difficulties</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-            <option value="expert">Expert</option>
-          </select>
-          
-          <input
-            type="text"
-            placeholder="Search quizzes..."
-            className="border rounded-lg px-3 py-2 text-sm flex-1 max-w-xs"
-            value={filters.search}
-            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          />
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="glass-panel p-8">
+          <h1 className="text-3xl font-semibold text-slate-950">Available Quizzes</h1>
+          <p className="mt-3 text-slate-600">Challenge yourself with adaptive quizzes designed for your learning level.</p>
         </div>
-      </div>
 
-      {/* Quiz Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {quizzes.map((quiz) => (
-          <div key={quiz._id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-3">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(quiz.difficulty)}`}>
+        {/* Filters */}
+        <div className="glass-panel p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 sm:flex-wrap">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-slate-500" />
+              <span className="text-sm font-medium text-slate-700">Filters:</span>
+            </div>
+            
+            <select
+              className="glass-input flex-1 min-w-[150px]"
+              value={filters.type}
+              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+            >
+              <option value="">All Types</option>
+              <option value="timed">Timed</option>
+              <option value="practice">Practice</option>
+              <option value="adaptive">Adaptive</option>
+              <option value="competitive">Competitive</option>
+            </select>
+            
+            <select
+              className="glass-input flex-1 min-w-[150px]"
+              value={filters.difficulty}
+              onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
+            >
+              <option value="">All Difficulties</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+              <option value="expert">Expert</option>
+            </select>
+            
+            <input
+              type="text"
+              placeholder="Search quizzes..."
+              className="glass-input flex-1 min-w-[150px]"
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            />
+          </div>
+        </div>
+
+        {/* Quiz Grid */}
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {quizzes.map((quiz) => (
+            <div key={quiz._id} className="glass-panel p-6 flex flex-col gap-4">
+              <div className="flex items-start justify-between">
+                <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em]">
+                  {getTypeIcon(quiz.type)}
+                  {quiz.type.charAt(0).toUpperCase() + quiz.type.slice(1)}
+                </span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
                   {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}
                 </span>
-                <div className="flex items-center gap-1 text-gray-500 text-sm">
-                  {getTypeIcon(quiz.type)}
-                  <span>{quiz.type.charAt(0).toUpperCase() + quiz.type.slice(1)}</span>
-                </div>
               </div>
               
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{quiz.title}</h3>
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">{quiz.description}</p>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-950">{quiz.title}</h3>
+                <p className="mt-2 line-clamp-2 text-sm text-slate-600">{quiz.description}</p>
+              </div>
               
-              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+              <div className="flex flex-wrap gap-3 text-xs text-slate-500">
                 <span>📋 {quiz.totalQuestions} questions</span>
                 <span>⏱️ {quiz.duration} min</span>
                 <span>🎯 {quiz.passingScore}% to pass</span>
@@ -173,20 +175,26 @@ const QuizList = () => {
               
               <button
                 onClick={() => startQuiz(quiz._id)}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                className="glass-button mt-auto w-full text-center"
               >
                 Start Quiz
               </button>
             </div>
-          </div>
-        ))}
-      </div>
-      
-      {quizzes.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No quizzes found. Check back later!</p>
+          ))}
         </div>
-      )}
+        
+        {quizzes.length === 0 && !loading && (
+          <div className="glass-panel p-12 text-center">
+            <p className="text-slate-600">No quizzes found. Check back later!</p>
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -12,13 +12,29 @@ const Login = () => {
   };
 
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Login</h2>
-      <form onSubmit={handleSubmit}>
-        <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border p-2 rounded mb-4" />
-        <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border p-2 rounded mb-4" />
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded">Login</button>
-      </form>
+    <div className="mx-auto max-w-md px-4 py-8 sm:px-6 lg:px-8">
+      <div className="glass-panel p-8">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-5">Login</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="glass-input"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="glass-input"
+          />
+          <button type="submit" className="glass-button w-full text-center">
+            Login
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

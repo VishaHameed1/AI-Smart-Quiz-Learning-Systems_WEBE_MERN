@@ -5,19 +5,20 @@ const ReviewPage = () => {
   const { user } = useAuth();
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Spaced Repetition Review</h1>
-      <div className="bg-white p-6 rounded-lg shadow text-center">
-        <p className="text-gray-600 mb-4">
-          Welcome to your review queue, {user?.name || 'Student'}!
-        </p>
-        <p className="text-gray-500">
-          Questions that need review will appear here based on the forgetting curve.
-        </p>
-        <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
-          <p className="text-yellow-800">
-            🔄 No questions due for review right now. Great job!
-          </p>
+    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <div className="glass-panel p-8 text-center">
+          <p className="text-sm uppercase tracking-[0.35em] text-slate-500">Spaced repetition</p>
+          <h1 className="mt-3 text-3xl font-semibold text-slate-950">Review queue</h1>
+          <p className="mt-4 text-slate-600">Questions due for review will appear here when your learning pattern needs reinforcement.</p>
+        </div>
+
+        <div className="glass-panel p-8 text-center">
+          <p className="text-slate-600 mb-4">Welcome back, {user?.name || 'Learner'}!</p>
+          <div className="mx-auto max-w-xl rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-amber-900">
+            <p className="text-lg font-semibold">🔄 No questions due for review right now. Great job!</p>
+            <p className="mt-3 text-sm text-amber-700">Keep practicing to maintain your streak and unlock new badges.</p>
+          </div>
         </div>
       </div>
     </div>
