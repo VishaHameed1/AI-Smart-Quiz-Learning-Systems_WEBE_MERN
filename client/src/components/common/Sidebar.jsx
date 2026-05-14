@@ -14,7 +14,7 @@ const Sidebar = () => {
     <aside className="hidden xl:flex xl:w-[280px] flex-col gap-6 border-r border-slate-200 bg-white px-5 py-6">
       <div>
         <p className="text-xs uppercase tracking-[0.25em] text-slate-400">Workspace</p>
-        <h2 className="mt-3 text-xl font-semibold text-slate-900">Interview Ops</h2>
+        <h2 className="mt-3 text-xl font-semibold text-slate-900">Learning Hub</h2>
       </div>
 
       <nav className="space-y-2">
@@ -31,7 +31,7 @@ const Sidebar = () => {
 
       <div className="mt-auto rounded-3xl border border-slate-200 bg-slate-50 p-4">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Need help?</p>
-        <p className="mt-3 text-sm text-slate-600">Visit the help center or check your session notes.</p>
+        <p className="mt-3 text-sm text-slate-600">Visit progress and review pages to stay on track.</p>
       </div>
     </aside>
   );

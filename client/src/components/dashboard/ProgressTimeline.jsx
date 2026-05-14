@@ -4,7 +4,7 @@ import { Check, Play } from 'lucide-react';
 const ProgressTimeline = ({ steps }) => {
   return (
     <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-card">
-      <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Session progress</h3>
+      <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-500">Learning progress</h3>
       <div className="relative mt-6 pl-6">
         <div className="absolute left-5 top-0 h-full w-px bg-slate-200" />
         <div className="space-y-7">

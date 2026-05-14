@@ -1,16 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/auth');
+const { auth, roleCheck } = require('../middleware/auth');
 const quizController = require('../controllers/quizController');
 
-// Public routes (but still need auth for user-specific data)
+// Public routes (require authentication for users)
 router.get('/', auth, quizController.getAllQuizzes);
 router.get('/:id', auth, quizController.getQuizById);
 
-// Protected routes (require authentication)
-router.post('/create', auth, quizController.createQuiz);
-router.put('/:id', auth, quizController.updateQuiz);
-router.delete('/:id', auth, quizController.deleteQuiz);
-router.post('/:id/duplicate', auth, quizController.duplicateQuiz);
+// Teacher/Admin routes for quiz management
+router.post('/create', auth, roleCheck(['teacher', 'admin']), quizController.createQuiz);
+router.put('/:id', auth, roleCheck(['teacher', 'admin']), quizController.updateQuiz);
+router.delete('/:id', auth, roleCheck(['teacher', 'admin']), quizController.deleteQuiz);
+router.post('/:id/duplicate', auth, roleCheck(['teacher', 'admin']), quizController.duplicateQuiz);
 
 module.exports = router;

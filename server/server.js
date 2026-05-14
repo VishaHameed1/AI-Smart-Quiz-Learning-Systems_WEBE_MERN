@@ -4,16 +4,19 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const cron = require('node-cron');
 require('dotenv').config();
 
 // ========== MIDDLEWARE ==========
 const { auth } = require('./middleware/auth');
+const cleanupService = require('./services/cleanupService');
 // ========== PERSON A ROUTES (Quiz Core) ==========
 const quizRoutes = require('./routes/quizRoutes');
 const questionRoutes = require('./routes/questionRoutes');
 const attemptRoutes = require('./routes/attemptRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const adaptiveRoutes = require('./routes/adaptiveRoutes');
+const cleanupRoutes = require('./routes/cleanupRoutes');
 
 // ========== PERSON B ROUTES (User & Learning System) ==========
 const authRoutes = require('./routes/auth.routes');
@@ -41,7 +44,7 @@ app.get('/api', (req, res) => {
         message: 'Welcome to AI Quiz System API',
         version: '2.0.0',
         modules: {
-            personA: 'Quiz Core, AI Generation, Adaptive Difficulty',
+            personA: 'Quiz Core, AI Generation, Adaptive Difficulty, Cleanup',
             personB: 'Authentication, Dashboard, Progress, Spaced Repetition'
         },
         status: 'Active'
@@ -62,6 +65,7 @@ app.use('/api/questions', auth, questionRoutes);
 app.use('/api/attempts', auth, attemptRoutes);
 app.use('/api/ai', auth, aiRoutes);
 app.use('/api/adaptive', auth, adaptiveRoutes);
+app.use('/api/cleanup', auth, cleanupRoutes);
 
 // Person B Routes (User & Learning System)
 app.use('/api/users', auth, userRoutes);
@@ -106,6 +110,20 @@ mongoose.connect(MONGODB_URI)
         console.log(`   GET  /api/quizzes - Get all quizzes`);
         console.log(`   GET  /api/users/profile - Get user profile`);
         console.log(`   GET  /api/progress - Get learning progress`);
+
+        // Schedule automatic cleanup every Sunday at 2 AM
+        cron.schedule('0 2 * * 0', async () => {
+            console.log('🧹 Running scheduled database cleanup...');
+            try {
+                const result = await cleanupService.runFullCleanup();
+                console.log('✅ Cleanup completed:', result.message);
+            } catch (error) {
+                console.error('❌ Scheduled cleanup failed:', error.message);
+            }
+        });
+
+        console.log('\n⏰ Scheduled tasks:');
+        console.log('   Database cleanup: Every Sunday at 2:00 AM');
     });
 })
 .catch(err => {

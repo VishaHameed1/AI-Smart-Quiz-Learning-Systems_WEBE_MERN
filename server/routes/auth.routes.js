@@ -7,9 +7,10 @@ const {
   resetPassword, 
   verifyEmail, 
   updateProfile, 
-  changePassword 
+  changePassword,
+  createUser
 } = require('../controllers/auth.controller');
-const { auth } = require('../middleware/auth');
+const { auth, roleCheck } = require('../middleware/auth');
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation.middleware');
 const { authLimiter } = require('../middleware/rateLimit.middleware');
@@ -41,6 +42,14 @@ const resetPasswordValidation = [
   validate
 ];
 
+const createUserValidation = [
+  body('name').notEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('role').isIn(['student', 'teacher', 'admin']).withMessage('Role must be student, teacher, or admin'),
+  validate
+];
+
 const updateProfileValidation = [
   body('name').optional().notEmpty(),
   body('avatar').optional().isURL(),
@@ -59,6 +68,9 @@ router.post('/login', authLimiter, loginValidation, login);
 router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
 router.post('/reset-password', resetPasswordValidation, resetPassword);
 router.get('/verify-email/:token', verifyEmail);
+
+// ========== ADMIN ROUTES ==========
+router.post('/create-user', auth, roleCheck(['admin']), createUserValidation, createUser);
 
 // ========== PROTECTED ROUTES (require auth) ==========
 router.get('/me', auth, getMe);

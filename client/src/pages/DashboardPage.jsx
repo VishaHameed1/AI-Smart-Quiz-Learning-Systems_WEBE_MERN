@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { ChevronRight } from 'lucide-react';
-import CandidateQueue from '../components/dashboard/CandidateQueue';
+import QuizQueue from '../components/dashboard/QuizQueue';
 import ProfileSwitcher from '../components/dashboard/ProfileSwitcher';
 import AssessmentCard from '../components/dashboard/AssessmentCard';
 import SessionTimer from '../components/dashboard/SessionTimer';
@@ -9,41 +9,41 @@ import ProgressTimeline from '../components/dashboard/ProgressTimeline';
 import SkillSlider from '../components/dashboard/SkillSlider';
 
 const navLinks = [
-  { label: 'Candidate list', active: true },
-  { label: 'Interview briefs' },
-  { label: 'Live sessions' },
-  { label: 'Historical notes' },
+  { label: 'Overview', active: true },
+  { label: 'Quizzes' },
+  { label: 'Progress' },
+  { label: 'Review' },
 ];
 
 const queue = [
-  { id: '1', name: 'Maya Patel', role: 'Frontend Engineer' },
-  { id: '2', name: 'Jordan Chase', role: 'Backend Engineer' },
-  { id: '3', name: 'Harper Lee', role: 'Data Scientist' },
+  { id: '1', name: 'Algebra Practice', status: 'Due tomorrow' },
+  { id: '2', name: 'History Quiz', status: 'Due in 2 days' },
+  { id: '3', name: 'Science Review', status: 'Available now' },
 ];
 
 const question = {
-  category: 'Assessment question',
-  title: 'Design a scalable interview platform',
+  category: 'Recommended quiz',
+  title: 'Adaptive learning challenge',
   description:
-    'Outline the architecture for a distributed technical interview application that supports real-time candidate sessions, live scoring, and coach collaboration.',
+    'Review your recent performance and take a personalized quiz to strengthen weak topics and improve retention.',
   rating: '4.8',
   corePoints: [
-    'Identify principal components',
-    'Design for high availability',
-    'Explain data flow and state',
+    'Reinforce key concepts',
+    'Track quiz mastery',
+    'Improve accuracy over time',
   ],
   criteria: [
-    'Clarity of architecture',
-    'Operational resilience',
-    'Realtime collaboration support',
+    'Focus on weak areas',
+    'Practice spaced repetition',
+    'Measure progress clearly',
   ],
 };
 
 const steps = [
-  { title: 'Candidate queued', subtitle: 'Waiting for interviewer', status: 'completed' },
-  { title: 'Profile review', subtitle: 'Review resume and skills', status: 'completed' },
-  { title: 'Live session', subtitle: 'In progress now', status: 'active' },
-  { title: 'Feedback sent', subtitle: 'Pending summary', status: 'upcoming' },
+  { title: 'Quiz assigned', subtitle: 'New practice available', status: 'completed' },
+  { title: 'In progress', subtitle: 'Working through questions', status: 'active' },
+  { title: 'Completed', subtitle: 'Review your answers', status: 'upcoming' },
+  { title: 'Feedback ready', subtitle: 'View tips and insights', status: 'upcoming' },
 ];
 
 const DashboardPage = () => {
@@ -54,16 +54,16 @@ const DashboardPage = () => {
       <div className="mx-auto max-w-[1720px] space-y-6">
         <header className="flex h-16 items-center justify-between rounded-[28px] border border-slate-200 bg-white px-6 shadow-card">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">Live interview operations</p>
-            <h1 className="text-lg font-bold text-slate-900">Session control dashboard</h1>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-slate-400">Adaptive quiz dashboard</p>
+            <h1 className="text-lg font-bold text-slate-900">Learning performance overview</h1>
           </div>
 
           <div className="flex items-center gap-3">
             <button className="rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
-              Manage queue
+              View quizzes
             </button>
             <button className="rounded-full bg-[#2563eb] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1d4ed8]">
-              Start session
+              Start practice
             </button>
           </div>
         </header>
@@ -89,7 +89,7 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            <CandidateQueue queue={queue} />
+            <QuizQueue queue={queue} />
             <ProfileSwitcher user={user} />
           </aside>
 
@@ -101,9 +101,9 @@ const DashboardPage = () => {
                     <span className="text-4xl font-black text-slate-900">{user?.name?.charAt(0) || 'A'}</span>
                   </div>
                   <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Candidate profile</p>
-                    <h2 className="mt-2 text-2xl font-semibold text-slate-900">{user?.name || 'Alex Nguyen'}</h2>
-                    <p className="mt-2 text-sm text-slate-500">Full-stack interview coordination lead</p>
+                    <p className="text-sm uppercase tracking-[0.3em] text-slate-400">Student profile</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-900">{user?.name || 'Learner'}</h2>
+                    <p className="mt-2 text-sm text-slate-500">Track progress, mastery, and quiz performance.</p>
                   </div>
                 </div>
 
@@ -151,9 +151,9 @@ const DashboardPage = () => {
             <SessionTimer hours="01" minutes="24" seconds="08" />
             <ProgressTimeline steps={steps} />
             <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-5 shadow-card">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Alert</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">Reminder</p>
               <p className="mt-4 text-sm leading-6 text-slate-700">
-                Live candidate session is in progress. Keep the feedback aligned with the rubric and submit notes within 10 minutes.
+                Complete your next quiz to improve topic mastery and keep your learning streak active.
               </p>
             </div>
           </aside>

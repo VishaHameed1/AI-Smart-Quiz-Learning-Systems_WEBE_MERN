@@ -1,13 +1,13 @@
 import React from 'react';
 import { UserCircle2 } from 'lucide-react';
 
-const CandidateQueue = ({ queue }) => {
+const QuizQueue = ({ queue }) => {
   return (
     <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-card">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Today's Queue</p>
-          <h3 className="mt-2 text-lg font-semibold text-slate-900">Interview candidates</h3>
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Upcoming</p>
+          <h3 className="mt-2 text-lg font-semibold text-slate-900">Quiz queue</h3>
         </div>
       </div>
 
@@ -19,7 +19,7 @@ const CandidateQueue = ({ queue }) => {
             </div>
             <div>
               <p className="text-sm font-semibold text-slate-900">{item.name}</p>
-              <p className="text-sm text-slate-500">{item.role}</p>
+              <p className="text-sm text-slate-500">{item.status}</p>
             </div>
           </div>
         ))}
@@ -28,4 +28,4 @@ const CandidateQueue = ({ queue }) => {
   );
 };
 
-export default CandidateQueue;
+export default QuizQueue;

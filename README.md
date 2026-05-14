@@ -9,7 +9,7 @@
 
 ## 📋 Project Overview
 
-AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Google Gemini AI** to generate dynamic questions and adjust difficulty based on user performance. This repository contains **different modules** - Quiz Core, AI Question Generation, Adaptive Difficulty, and Analytics.
+AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Google Gemini AI** to generate dynamic questions and adjust difficulty based on user performance. This repository contains **different modules** - Quiz Core, AI Question Generation, Adaptive Difficulty, Analytics, and Student Learning Management.
 
 ### 👥 Project Team
 
@@ -22,10 +22,19 @@ AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Googl
 
 ### 🎯 Quiz Management
 - ✅ Create, Read, Update, Delete quizzes
+- ✅ Role-based quiz authoring for teachers/admins
+- ✅ Student-facing quiz taking with adaptive scoring
 - ✅ Multiple quiz types (Timed, Practice, Adaptive, Competitive)
 - ✅ Question bank management
 - ✅ Bulk question upload (JSON/CSV)
 - ✅ Duplicate quiz functionality
+
+### 🧑‍🎓 Student Learning Management
+- ✅ Teacher and admin user roles with controlled access
+- ✅ Student dashboards with progress tracking
+- ✅ Teacher analytics for class performance
+- ✅ Admin user management and role assignment
+- ✅ Integrated spaced repetition review flow
 
 ### 🤖 AI Question Generation (Google Gemini)
 - ✅ Generate questions from topic name
@@ -49,6 +58,15 @@ AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Googl
 - ✅ Topic mastery tracking
 - ✅ Time tracking per question
 - ✅ Export results as PDF/CSV
+
+### 🧹 Data Management & Cleanup
+- ✅ Automatic cleanup of old quiz attempts
+- ✅ Removal of abandoned quiz sessions
+- ✅ Cleanup of expired spaced repetition items
+- ✅ Progress history optimization
+- ✅ AI cache management
+- ✅ Manual and scheduled cleanup operations
+- ✅ **Scheduled cleanup**: Runs automatically every Sunday at 2:00 AM
 
 ## 🛠️ Tech Stack
 
@@ -274,6 +292,29 @@ GET    /api/attempts/:attemptId/results     // Get results
 GET    /api/attempts/user/my-attempts       // Get user attempts
 ```
 
+### Auth & User APIs
+```javascript
+POST   /api/auth/register                    // Register student account
+POST   /api/auth/login                       // Login
+GET    /api/auth/me                          // Get current user
+POST   /api/auth/create-user                 // Create teacher/admin account (admin only)
+PUT    /api/auth/profile                     // Update current profile
+PUT    /api/auth/change-password             // Change password
+```
+
+### Teacher/Admin & User Management APIs
+```javascript
+GET    /api/teacher/students                 // Get all students (teacher/admin)
+GET    /api/teacher/students/:id/progress    // Get student progress (teacher/admin)
+GET    /api/teacher/analytics                // Get class analytics (teacher/admin)
+GET    /api/users                            // Get all users (admin)
+GET    /api/users/:id                        // Get user by ID
+PUT    /api/users/:id                        // Update user (admin)
+DELETE /api/users/:id                        // Delete user (admin)
+GET    /api/users/:id/progress               // Get user progress
+GET    /api/users/:id/stats                  // Get quiz stats for user
+```
+
 ### AI APIs (Gemini - FREE)
 ```javascript
 POST   /api/ai/generate-questions      // Generate from topic
@@ -290,6 +331,16 @@ POST   /api/ai/generate-flashcards     // Generate flashcards
 POST   /api/adaptive/attempt/:attemptId/next     // Get next question
 GET    /api/adaptive/user/:userId/skill-level    // Get skill level
 PUT    /api/adaptive/question/:questionId/difficulty  // Update difficulty
+```
+
+### Cleanup APIs (Data Management)
+```javascript
+POST   /api/cleanup/full                        // Run full cleanup (all operations)
+DELETE /api/cleanup/attempts/old/:days?         // Delete old completed attempts (default 365 days)
+DELETE /api/cleanup/attempts/abandoned/:days?   // Delete abandoned attempts (default 30 days)
+DELETE /api/cleanup/review/old/:days?           // Delete old review queue items (default 90 days)
+DELETE /api/cleanup/progress/history/:keep?     // Clean progress history (keep last N entries, default 50)
+DELETE /api/cleanup/ai/cache                    // Clean expired AI cache
 ```
 
 ## 🐳 Docker Setup

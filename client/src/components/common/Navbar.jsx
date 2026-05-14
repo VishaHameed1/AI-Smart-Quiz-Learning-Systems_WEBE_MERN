@@ -2,10 +2,10 @@
 import { Link } from 'react-router-dom';
 
 const navItems = [
-  { label: 'Products', to: '/home' },
-  { label: 'Solutions', to: '/dashboard' },
-  { label: 'Resources', to: '/progress' },
-  { label: 'Pricing', to: '/quizzes' },
+  { label: 'Home', to: '/home' },
+  { label: 'Dashboard', to: '/dashboard' },
+  { label: 'Progress', to: '/progress' },
+  { label: 'Quizzes', to: '/quizzes' },
 ];
 
 const Navbar = () => {
@@ -14,10 +14,10 @@ const Navbar = () => {
       <div className="mx-auto flex h-full max-w-[1720px] items-center justify-between gap-4 px-6">
         <Link to="/" className="flex items-center gap-3 text-slate-900">
           <div className="flex h-[40px] w-[40px] items-center justify-center rounded-[12px] bg-gradient-to-br from-sky-500 to-violet-300 text-white shadow-glow">
-            <span className="text-lg font-bold">M</span>
+            <span className="text-lg font-bold">Q</span>
           </div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Mesh</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">AI Quiz</p>
           </div>
         </Link>
 

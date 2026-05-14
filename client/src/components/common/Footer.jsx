@@ -27,11 +27,11 @@ const Footer = () => {
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="flex h-[40px] w-[40px] items-center justify-center rounded-[12px] bg-gradient-to-br from-sky-500 to-violet-300 text-white shadow-glow">
-              <span className="text-lg font-semibold">M</span>
+              <span className="text-lg font-semibold">Q</span>
             </div>
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white">Mesh</p>
-              <p className="text-sm text-slate-400">Premium service design system.</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white">AI Quiz</p>
+              <p className="text-sm text-slate-400">Adaptive learning and quiz analytics for students and teachers.</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

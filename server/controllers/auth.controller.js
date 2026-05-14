@@ -17,7 +17,10 @@ const generateToken = (userId, email, role) => {
 // @route   POST /api/auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
+
+    // Public registration only allows student role
+    const userRole = 'student';
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -29,12 +32,12 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
+    // Create user as student only
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: role || 'student'
+      role: userRole
     });
 
     // Create gamification profile
@@ -48,6 +51,52 @@ const register = async (req, res) => {
       token,
       user: {
         userId: user._id,        // ✅ userId for frontend
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Create user (admin only)
+// @route   POST /api/auth/create-user
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+    }
+    if (!['student', 'teacher', 'admin'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid role specified' });
+    }
+
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ success: false, message: 'User already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      role
+    });
+
+    await Gamification.create({ userId: user._id });
+
+    res.status(201).json({
+      success: true,
+      message: 'User created successfully',
+      user: {
+        userId: user._id,
         name: user.name,
         email: user.email,
         role: user.role
@@ -279,5 +328,6 @@ module.exports = {
   resetPassword,
   verifyEmail,
   updateProfile,
-  changePassword
+  changePassword,
+  createUser
 };

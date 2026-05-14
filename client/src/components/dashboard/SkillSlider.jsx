@@ -6,7 +6,7 @@ const SkillSlider = ({ label, value, minLabel, midLabel, maxLabel }) => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-slate-900">{label}</p>
-          <p className="mt-1 text-sm text-slate-500">Adjust candidate proficiency</p>
+          <p className="mt-1 text-sm text-slate-500">Track learner proficiency</p>
         </div>
         <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
           {value}
