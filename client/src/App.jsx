@@ -3,6 +3,12 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { QuizProvider } from './context/QuizContext';
 import PrivateRoute from './components/common/PrivateRoute';
+import RoleSelection from './pages/onboarding/RoleSelection';
+import TeacherOnboarding from './pages/onboarding/TeacherOnboarding';
+import AdminOnboarding from './pages/onboarding/AdminOnboarding';
+
+// Global CSS for react-datepicker
+import 'react-datepicker/dist/react-datepicker.css';
 
 // ========== PERSON A - QUIZ PAGES ==========
 // Student Quiz Pages
@@ -30,7 +36,7 @@ import TwoFactorAuth from './components/auth/TwoFactorAuth';
 // Dashboard Pages
 import DashboardPage from './pages/DashboardPage';
 import StudentDashboard from './components/dashboard/StudentDashboard';
-import TeacherDashboard from './components/dashboard/TeacherDashboard';
+import TeacherDashboard from './components/common/TeacherDashboard';
 import AdminDashboard from './components/dashboard/AdminDashboard';
 
 // Progress & Learning Pages
@@ -99,6 +105,12 @@ function App() {
                   <Route path="/reset-password/:token" element={<ResetPassword />} />
                   <Route path="/verify-email/:token" element={<VerifyEmail />} />
                   <Route path="/2fa" element={<TwoFactorAuth />} />
+                  <Route path="/verify-email/:token" element={<VerifyEmail />} />
+
+                  {/* Role Selection and Onboarding Routes */}
+                  <Route path="/role-selection" element={<PrivateRoute><RoleSelection /></PrivateRoute>} />
+                  <Route path="/onboarding/teacher" element={<PrivateRoute allowedRoles={['teacher']}><TeacherOnboarding /></PrivateRoute>} />
+                  <Route path="/onboarding/admin" element={<PrivateRoute allowedRoles={['admin']}><AdminOnboarding /></PrivateRoute>} />
 
                   {/* ========== PERSON A - QUIZ ROUTES ========== */}
                   {/* Student Quiz Routes */}

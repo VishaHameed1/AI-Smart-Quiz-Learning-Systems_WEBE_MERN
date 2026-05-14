@@ -7,7 +7,7 @@ const crypto = require('crypto');
 // Generate JWT - using 'id' for middleware compatibility
 const generateToken = (userId, email, role) => {
   return jwt.sign(
-    { id: userId, email, role },  // ✅ 'id' use karo
+    { id: userId, email, role },
     process.env.JWT_SECRET || 'secretkey123',
     { expiresIn: '7d' }
   );
@@ -17,10 +17,7 @@ const generateToken = (userId, email, role) => {
 // @route   POST /api/auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
-    // Public registration only allows student role
-    const userRole = 'student';
+    const { name, email, password, role } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -32,12 +29,16 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user as student only
+    // Validate role or default to student
+    const userRole = ['student', 'teacher', 'admin'].includes(role) ? role : 'student';
+
+    // Create user
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role: userRole
+      role: userRole,
+      onboardingCompleted: false
     });
 
     // Create gamification profile
@@ -49,11 +50,12 @@ const register = async (req, res) => {
     res.status(201).json({
       success: true,
       token,
-      user: {
-        userId: user._id,        // ✅ userId for frontend
+      data: {
+        userId: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        onboardingCompleted: user.onboardingCompleted
       }
     });
   } catch (error) {
@@ -136,12 +138,13 @@ const login = async (req, res) => {
     res.json({
       success: true,
       token,
-      user: {
-        userId: user._id,        // ✅ userId for frontend
+      data: {
+        userId: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar: user.avatar
+        avatar: user.avatar,
+        onboardingCompleted: user.onboardingCompleted
       }
     });
   } catch (error) {
@@ -257,8 +260,8 @@ const verifyEmail = async (req, res) => {
 // @desc    Update profile
 // @route   PUT /api/auth/profile
 const updateProfile = async (req, res) => {
-  try {
-    const { name, avatar, preferences } = req.body;
+  try { 
+    const { name, avatar, preferences, role, onboardingCompleted } = req.body;
     const userId = req.user._id;
 
     const user = await User.findById(userId);
@@ -269,6 +272,8 @@ const updateProfile = async (req, res) => {
     if (name) user.name = name;
     if (avatar) user.avatar = avatar;
     if (preferences) user.preferences = { ...user.preferences, ...preferences };
+    if (role && ['student', 'teacher', 'admin'].includes(role)) user.role = role;
+    if (onboardingCompleted !== undefined) user.onboardingCompleted = onboardingCompleted;
 
     await user.save();
 
@@ -280,7 +285,9 @@ const updateProfile = async (req, res) => {
         name: user.name,
         email: user.email,
         avatar: user.avatar,
-        preferences: user.preferences
+        preferences: user.preferences,
+        role: user.role,
+        onboardingCompleted: user.onboardingCompleted
       }
     });
   } catch (error) {

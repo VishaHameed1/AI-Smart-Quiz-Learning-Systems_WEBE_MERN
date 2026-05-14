@@ -1,14 +1,36 @@
 ﻿import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
-const navItems = [
+const studentNavItems = [
   { label: 'Home', to: '/home' },
-  { label: 'Dashboard', to: '/dashboard' },
+  { label: 'Dashboard', to: '/dashboard/student' },
   { label: 'Progress', to: '/progress' },
   { label: 'Quizzes', to: '/quizzes' },
 ];
 
+const teacherNavItems = [
+  { label: 'Home', to: '/home' },
+  { label: 'Dashboard', to: '/dashboard/teacher' },
+  { label: 'Students', to: '/teacher/students' },
+  { label: 'Create Quiz', to: '/teacher/create-quiz' },
+  { label: 'Analytics', to: '/teacher/analytics' },
+];
+
+const adminNavItems = [
+  { label: 'Home', to: '/home' },
+  { label: 'Dashboard', to: '/dashboard/admin' },
+  { label: 'User Management', to: '/admin/users' },
+  { label: 'System Overview', to: '/admin/overview' },
+  { label: 'Create User', to: '/admin/create-user' },
+];
+
 const Navbar = () => {
+  const { user, logout, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+
+  let currentNavItems = [];
+
   return (
     <nav className="sticky top-0 z-30 h-20 border-b border-white/30 bg-white/60 backdrop-blur-xl">
       <div className="mx-auto flex h-full max-w-[1720px] items-center justify-between gap-4 px-6">
@@ -22,7 +44,26 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-700">
-          {navItems.map((item) => (
+          {isAuthenticated && user ? (
+            (() => {
+              switch (user.role) {
+                case 'student':
+                  currentNavItems = studentNavItems;
+                  break;
+                case 'teacher':
+                  currentNavItems = teacherNavItems;
+                  break;
+                case 'admin':
+                  currentNavItems = adminNavItems;
+                  break;
+                default:
+                  currentNavItems = studentNavItems;
+              }
+              return currentNavItems;
+            })()
+          ) : (
+            [{ label: 'Home', to: '/home' }, { label: 'Quizzes', to: '/quizzes' }] // Public view
+          ).map((item) => (
             <Link
               key={item.to}
               to={item.to}
@@ -35,12 +76,26 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <Link to="/login" className="text-sm font-semibold text-slate-700 hover:text-slate-900">
-            Login
-          </Link>
-          <Link to="/register" className="glow-cta inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold">
-            Get Started
-          </Link>
+          {isAuthenticated ? (
+            <>
+              <span className="text-sm font-semibold text-slate-700">Welcome, {user.name}!</span>
+              <button
+                onClick={() => { logout(); navigate('/login'); }}
+                className="text-sm font-semibold text-slate-700 hover:text-slate-900"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="text-sm font-semibold text-slate-700 hover:text-slate-900">
+                Login
+              </Link>
+              <Link to="/register" className="glow-cta inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold">
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

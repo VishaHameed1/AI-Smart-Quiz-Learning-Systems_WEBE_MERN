@@ -128,6 +128,10 @@ ai-quiz-system-person-a/
 │   │   │   │   ├── QuizList.jsx
 │   │   │   │   ├── TakeQuiz.jsx
 │   │   │   │   └── QuizResult.jsx
+│   │   │   ├── onboarding/
+│   │   │   │   ├── RoleSelection.jsx
+│   │   │   │   ├── TeacherOnboarding.jsx
+│   │   │   │   └── AdminOnboarding.jsx
 │   │   │   ├── teacher/
 │   │   │   │   ├── CreateQuiz.jsx
 │   │   │   │   ├── ManageQuestions.jsx
@@ -543,4 +547,3 @@ MIT License - see [LICENSE](LICENSE) file for details.
 | Troubleshooting | Added 401 error solution |
 | Contact | Added both team members |
 | Acknowledgments | Added supervisor and university |
-
