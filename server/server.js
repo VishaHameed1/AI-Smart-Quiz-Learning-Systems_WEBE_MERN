@@ -1,83 +1,58 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
-const compression = require('compression');
-const morgan = require('morgan'); // Logging ke liye (optional but recommended)
-require('dotenv').config();
+const connectDB = require('./config/database');
+const app = require('./app');
 
-// Middleware aur Routes import karein
-const { auth } = require('./middleware/auth'); // Aapka updated auth middleware
-const quizRoutes = require('./routes/quizRoutes');
-const questionRoutes = require('./routes/questionRoutes');
-const attemptRoutes = require('./routes/attemptRoutes');
-const aiRoutes = require('./routes/aiRoutes');
-const adaptiveRoutes = require('./routes/adaptiveRoutes');
-
-const app = express();
-
-// --- 1. Security & Optimization Middleware ---
-app.use(helmet()); 
-app.use(compression()); 
-app.use(cors()); 
-app.use(morgan('dev')); // Terminal mein requests track karne ke liye
-app.use(express.json()); 
-app.use(express.urlencoded({ extended: true }));
-
-// --- 2. API Welcome & Health Routes ---
-app.get('/api', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Welcome to AI Quiz System API',
-        version: '1.0.0',
-        student: 'Visha Hameed', //
-        status: 'Active'
-    });
-});
-
-app.get('/api/health', (req, res) => {
-    res.json({ success: true, message: 'Server is healthy and running!' });
-});
-
-// --- 3. Functional Routes ---
-// Note: 'auth' ko yahan middleware ke taur par globally ya route-specific use kar sakte hain
-app.use('/api/quizzes', auth, quizRoutes);
-app.use('/api/questions', auth, questionRoutes);
-app.use('/api/attempts', auth, attemptRoutes);
-app.use('/api/ai', auth, aiRoutes);
-app.use('/api/adaptive', auth, adaptiveRoutes);
-
-// --- 4. 404 & Error Handling ---
-app.use((req, res) => {
-    res.status(404).json({ success: false, message: 'Route not found' });
-});
-
-app.use((err, req, res, next) => {
-    console.error('Internal Server Error:', err.stack);
-    res.status(500).json({ 
-        success: false, 
-        message: err.message || 'Something went wrong on the server' 
-    });
-});
-
-// --- 5. Database Connection & Startup ---
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI; // Ensure this is set in your .env
+const MONGODB_URI = process.env.MONGODB_URI;
 
-if (!MONGODB_URI) {
-    console.error('❌ Error: MONGODB_URI is not defined in .env file');
-    process.exit(1);
-}
+const startServer = async () => {
+    if (!MONGODB_URI) {
+        console.error('❌ Error: MONGODB_URI is not defined in .env file');
+        if (process.env.NODE_ENV !== 'test') {
+            process.exit(1);
+        }
+        console.warn('⚠️ Running in test mode without a MongoDB connection.');
+    }
 
-mongoose.connect(MONGODB_URI)
-.then(() => {
-    console.log('✅ MongoDB connected successfully');
+    if (MONGODB_URI) {
+        await connectDB();
+    }
+
     app.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
         console.log(`📡 API live at: http://localhost:${PORT}/api`);
     });
-})
-.catch(err => {
-    console.error('❌ MongoDB connection error:', err.message);
-    process.exit(1);
-});
+};
+
+// Schedule weekly cleanup on Sundays at 2:00 AM (with error handling)
+try {
+    const cron = require('node-cron');
+    // Check if cleanupController exists before using it
+    let cleanupController;
+    try {
+        cleanupController = require('./controllers/cleanupController');
+    } catch (err) {
+        console.log('⚠️ Cleanup controller not available, skipping scheduled cleanup');
+    }
+    
+    if (cleanupController && cron) {
+        cron.schedule('0 2 * * 0', async () => {
+            console.log('Running scheduled cleanup...');
+            try {
+                await cleanupController.fullCleanup({ body: {} }, { json: () => {} });
+            } catch (err) {
+                console.error('Scheduled cleanup failed:', err);
+            }
+        });
+    }
+} catch (err) {
+    console.log('ℹ️ Cron scheduling not available (node-cron not installed)');
+}
+
+if (process.env.NODE_ENV !== 'test') {
+    startServer().catch(err => {
+        console.error('❌ Server failed to start:', err.message);
+        process.exit(1);
+    });
+}
+
+module.exports = app;

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../services/api';
 
 const EditQuiz = () => {
   const { quizId } = useParams();
@@ -8,15 +8,15 @@ const EditQuiz = () => {
   const [quiz, setQuiz] = useState(null);
 
   useEffect(() => {
-    axios.get(/api/quizzes/)
-      .then(res => setQuiz(res.data.data))
-      .catch(err => console.error(err));
+    api.get(`/quizzes/${quizId}`)
+      .then((res) => setQuiz(res.data.data))
+      .catch((err) => console.error(err));
   }, [quizId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await axios.put(/api/quizzes/, quiz);
-    navigate('/teacher/dashboard');
+    await api.put(`/quizzes/${quizId}`, quiz);
+    navigate(`/teacher/quiz/${quizId}/questions`);
   };
 
   if (!quiz) return <div>Loading...</div>;

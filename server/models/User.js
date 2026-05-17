@@ -24,23 +24,23 @@ const userSchema = new mongoose.Schema({
     enum: ['student', 'teacher', 'admin'],
     default: 'student'
   },
-  profilePicture: {
-    type: String,
-    default: ''
+  profilePicture: { type: String, default: '' },
+  avatar: { type: String },
+  xp: { type: Number, default: 0 },
+  level: { type: Number, default: 1 },
+  streak: { type: Number, default: 0 },
+  badges: { type: [String], default: [] },
+  preferences: {
+    defaultDifficulty: { type: String, default: 'medium' },
+    dailyGoal: { type: Number, default: 20 }
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  lastLogin: {
-    type: Date
-  }
+  createdAt: { type: Date, default: Date.now },
+  lastLogin: { type: Date }
 });
 
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);

@@ -174,3 +174,18 @@ exports.getQuestionsByTopic = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+// ✅ NEW FUNCTION: Get questions by quiz ID
+exports.getQuestionsByQuizId = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const questions = await Question.find({ quizId });
+    res.json({
+      success: true,
+      data: questions
+    });
+  } catch (error) {
+    console.error('Error fetching questions by quiz:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

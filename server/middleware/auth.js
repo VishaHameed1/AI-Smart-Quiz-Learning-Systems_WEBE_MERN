@@ -7,25 +7,27 @@ const User = require('../models/User');
  */
 module.exports.auth = async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === 'test' || process.env.DISABLE_AUTH === 'true') {
+      req.user = {
+        _id: '000000000000000000000000',
+        id: '000000000000000000000000',
+        role: 'teacher',
+        name: 'Test User',
+        email: 'test@example.com'
+      };
+      return next();
+    }
+
     // Check for token in header
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
-    // --- TEMPORARY BYPASS (Testing ke liye isey uncomment rakhein) ---
-    // Agar aap chahte hain ke bina login ke kaam chale, toh niche wali lines use karein
-    /*
-    req.user = {
-      _id: '67a8b8c8d9e8f9a1b2c3d4e5',
-      id: '67a8b8c8d9e8f9a1b2c3d4e5',
-      role: 'teacher',
-      name: 'Test User',
-      email: 'test@example.com'
-    };
-    return next();
-    */
-    // -------------------------------------------------------------
 
     if (!token) {
       return res.status(401).json({ success: false, message: 'No token, authorization denied' });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not defined');
+      return res.status(500).json({ success: false, message: 'Server authentication is misconfigured' });
     }
 
     // Verify token
@@ -59,4 +61,10 @@ module.exports.roleCheck = (roles) => {
     }
     next();
   };
+};
+
+module.exports.isAdmin = (req, res, next) => {
+  if (!req.user) return res.status(401).json({ success: false, message: 'Not authenticated' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin access required' });
+  next();
 };

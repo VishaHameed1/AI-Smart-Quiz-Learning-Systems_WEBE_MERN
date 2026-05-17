@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 
 const QuestionBank = () => {
   const [questions, setQuestions] = useState([]);
@@ -7,9 +7,9 @@ const QuestionBank = () => {
 
   useEffect(() => {
     if (topic) {
-      axios.get(/api/questions/topic/)
-        .then(res => setQuestions(res.data.data))
-        .catch(err => console.error(err));
+      api.get(`/questions/topic/${encodeURIComponent(topic)}`)
+        .then((res) => setQuestions(res.data.data))
+        .catch((err) => console.error(err));
     }
   }, [topic]);
 

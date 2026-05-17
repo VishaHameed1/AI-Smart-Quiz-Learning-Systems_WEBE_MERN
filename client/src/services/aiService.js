@@ -1,24 +1,24 @@
-﻿import axios from 'axios';
+﻿import api from './api';
 
-const API_URL = '/api/ai';
+const AI_BASE = '/ai';
 
 export const generateQuestions = async (data) => {
-  const response = await axios.post(${API_URL}/generate-questions, data);
-  return response.data;
+  const response = await api.post(`${AI_BASE}/generate-questions`, data);
+  return response.data.data;
 };
 
 export const generateFromText = async (text, numberOfQuestions = 5) => {
-  const response = await axios.post(${API_URL}/generate-from-text, { text, numberOfQuestions });
-  return response.data;
+  const response = await api.post(`${AI_BASE}/generate-from-text`, { text, numberOfQuestions });
+  return response.data.data;
 };
 
 export const explainAnswer = async (question, userAnswer, correctAnswer) => {
-  const response = await axios.post(${API_URL}/explain-answer, { question, userAnswer, correctAnswer });
-  return response.data;
+  const response = await api.post(`${AI_BASE}/explain-answer`, { question, userAnswer, correctAnswer });
+  return response.data.explanation || response.data.data;
 };
 
 export default {
   generateQuestions,
   generateFromText,
-  explainAnswer
+  explainAnswer,
 };

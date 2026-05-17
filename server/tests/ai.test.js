@@ -1,8 +1,7 @@
-const request = require('supertest');
-const express = require('express');
+process.env.NODE_ENV = 'test';
 
-const app = express();
-app.use(express.json());
+const request = require('supertest');
+const app = require('../app');
 
 // Mock AI generation test
 describe('AI Question Generation', () => {
@@ -16,7 +15,8 @@ describe('AI Question Generation', () => {
       });
     
     expect(response.status).toBe(200);
-    expect(response.body.success).toBeDefined();
+    expect(response.body.success).toBe(true);
+    expect(Array.isArray(response.body.data)).toBe(true);
   });
   
   test('Should handle invalid topic', async () => {
@@ -28,5 +28,6 @@ describe('AI Question Generation', () => {
       });
     
     expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
   });
 });

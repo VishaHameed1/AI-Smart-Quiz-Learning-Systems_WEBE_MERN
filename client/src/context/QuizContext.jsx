@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useReducer } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 const QuizContext = createContext();
 
@@ -52,11 +52,11 @@ export const QuizProvider = ({ children }) => {
   const startQuiz = async (quizId) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
-      const response = await axios.post(`/api/attempts/quiz/${quizId}/start`);
+      const response = await api.post(`/attempts/quiz/${quizId}/start`);
       dispatch({ type: 'SET_ATTEMPT', payload: response.data.data });
       
       // Fetch quiz questions
-      const quizResponse = await axios.get(`/api/quizzes/${quizId}`);
+      const quizResponse = await api.get(`/quizzes/${quizId}`);
       dispatch({ type: 'SET_QUIZ', payload: quizResponse.data.data });
       dispatch({ type: 'SET_QUESTIONS', payload: quizResponse.data.data.questions });
       
@@ -69,7 +69,7 @@ export const QuizProvider = ({ children }) => {
 
   const submitAnswer = async (attemptId, questionId, answer, timeTaken) => {
     try {
-      const response = await axios.post(`/api/attempts/${attemptId}/submit-answer`, {
+      const response = await api.post(`/attempts/${attemptId}/submit-answer`, {
         questionId,
         selectedAnswer: answer,
         timeTaken,
@@ -85,7 +85,7 @@ export const QuizProvider = ({ children }) => {
 
   const completeQuiz = async (attemptId) => {
     try {
-      const response = await axios.post(`/api/attempts/${attemptId}/complete`);
+      const response = await api.post(`/attempts/${attemptId}/complete`);
       return response.data.data;
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: error.response?.data?.message || 'Failed to complete quiz' });
@@ -95,7 +95,7 @@ export const QuizProvider = ({ children }) => {
 
   const getNextAdaptiveQuestion = async (attemptId, lastQuestionId, wasCorrect, timeTaken) => {
     try {
-      const response = await axios.post(`/api/adaptive/attempt/${attemptId}/next`, {
+      const response = await api.post(`/adaptive/attempt/${attemptId}/next`, {
         lastQuestionId,
         wasCorrect,
         timeTaken,

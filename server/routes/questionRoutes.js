@@ -4,6 +4,7 @@ const { auth } = require('../middleware/auth');
 const questionController = require('../controllers/questionController');
 
 // Protected routes
+router.get('/quiz/:quizId', auth, questionController.getQuestionsByQuizId);
 router.post('/quiz/:quizId/add', auth, questionController.addQuestion);
 router.post('/quiz/:quizId/bulk', auth, questionController.bulkUploadQuestions);
 router.put('/:id', auth, questionController.updateQuestion);
