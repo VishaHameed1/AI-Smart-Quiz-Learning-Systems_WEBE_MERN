@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 export const useQuiz = () => {
   const [loading, setLoading] = useState(false);
@@ -8,7 +8,7 @@ export const useQuiz = () => {
   const fetchQuiz = async (quizId) => {
     setLoading(true);
     try {
-      const response = await axios.get(/api/quizzes/);
+      const response = await api.get(`/quizzes/${quizId}`);
       return response.data.data;
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch quiz');
@@ -20,10 +20,10 @@ export const useQuiz = () => {
 
   const submitAnswer = async (attemptId, questionId, answer, timeTaken) => {
     try {
-      const response = await axios.post(/api/attempts//submit-answer, {
+      const response = await api.post(`/attempts/${attemptId}/submit-answer`, {
         questionId,
         selectedAnswer: answer,
-        timeTaken
+        timeTaken,
       });
       return response.data.data;
     } catch (err) {

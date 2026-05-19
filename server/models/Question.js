@@ -31,7 +31,6 @@ const questionSchema = new mongoose.Schema({
   },
   topic: {
     type: String,
-    required: true
   },
   subtopic: String,
   tags: [String],

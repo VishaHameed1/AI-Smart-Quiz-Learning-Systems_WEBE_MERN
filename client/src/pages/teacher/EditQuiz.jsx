@@ -1,7 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useAuth } from '../../hooks/useAuth';
+import api from '../../services/api';
 
 const EditQuiz = () => {
   const { quizId } = useParams();
@@ -11,33 +10,15 @@ const EditQuiz = () => {
   const { token } = useAuth();
 
   useEffect(() => {
-    const fetchQuiz = async () => {
-      try {
-        // ✅ FIXED: Use BACKTICKS, not forward slashes
-        const url = `/api/quizzes/${quizId}`;
-        const response = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setQuiz(response.data.data);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (token) fetchQuiz();
-  }, [quizId, token]);
+    api.get(`/quizzes/${quizId}`)
+      .then((res) => setQuiz(res.data.data))
+      .catch((err) => console.error(err));
+  }, [quizId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      await axios.put(`/api/quizzes/${quizId}`, quiz, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      navigate('/teacher/portal');
-    } catch (error) {
-      console.error('Error:', error);
-    }
+    await api.put(`/quizzes/${quizId}`, quiz);
+    navigate(`/teacher/quiz/${quizId}/questions`);
   };
 
   if (loading) return <div className="text-center py-8">Loading...</div>;

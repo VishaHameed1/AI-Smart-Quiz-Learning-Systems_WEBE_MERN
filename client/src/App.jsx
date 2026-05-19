@@ -7,22 +7,33 @@ import RoleSelection from './pages/onboarding/RoleSelection';
 import TeacherOnboarding from './pages/onboarding/TeacherOnboarding';
 import AdminOnboarding from './pages/onboarding/AdminOnboarding';
 
-// Global CSS for react-datepicker
-import 'react-datepicker/dist/react-datepicker.css';
-
-// ========== PERSON A - QUIZ PAGES ==========
-// Student Quiz Pages
+// Pages
+import Showcase from './pages/shared/Showcase';
+import LoginPage from './pages/shared/LoginPage';
+import RegisterPage from './pages/shared/RegisterPage';
 import QuizList from './pages/student/QuizList';
+import StudentDashboard from './pages/student/Dashboard';
+import QuizHistory from './pages/student/QuizHistory';
+import Progress from './pages/student/Progress';
 import TakeQuiz from './pages/student/TakeQuiz';
 import QuizResult from './pages/student/QuizResult';
-import QuizHistory from './pages/student/QuizHistory';
-
-// Teacher Quiz Pages
+import ProfilePage from './pages/shared/ProfilePage';
 import CreateQuiz from './pages/teacher/CreateQuiz';
 import ManageQuestions from './pages/teacher/ManageQuestions';
-import AIQuestionGen from './pages/teacher/AIQuestionGen';
-import EditQuiz from './pages/teacher/EditQuiz';
 import QuestionBank from './pages/teacher/QuestionBank';
+import AIQuestionGen from './pages/teacher/AIQuestionGen';
+import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherQuizzes from './pages/teacher/TeacherQuizzes';
+import TeacherStudents from './pages/teacher/TeacherStudents';
+import StudentProgress from './pages/teacher/StudentProgress';
+import TeacherAnalytics from './pages/teacher/TeacherAnalytics';
+import TeacherClassReport from './pages/teacher/TeacherClassReport';
+import EditQuiz from './pages/teacher/EditQuiz';
+import Review from './pages/student/Review';
+import Leaderboard from './pages/student/Leaderboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import UserManagement from './pages/admin/UserManagement';
+import AdminCleanup from './pages/admin/AdminCleanup';
 
 // ========== PERSON B - USER & LEARNING PAGES ==========
 // Auth Pages
@@ -78,251 +89,142 @@ import HomePage from './pages/HomePage';
 
 // ========== COMMON COMPONENTS ==========
 import Navbar from './components/common/Navbar';
-import Footer from './components/common/Footer';
-import Sidebar from './components/common/Sidebar';
-import LoadingSpinner from './components/common/LoadingSpinner';
-import ToastNotification from './components/common/ToastNotification';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
         <QuizProvider>
-          <div className="min-h-screen bg-transparent text-slate-900">
+          <div className="min-h-screen bg-slate-950 text-white">
             <Navbar />
-            <div className="flex">
-              <Sidebar />
-              <main className="flex-1 min-h-screen px-4 py-8 xl:px-8">
-                <Routes>
-                  {/* ========== PUBLIC ROUTES ========== */}
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/home" element={<HomePage />} />
-                  
-                  {/* ========== AUTH ROUTES ========== */}
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password/:token" element={<ResetPassword />} />
-                  <Route path="/verify-email/:token" element={<VerifyEmail />} />
-                  <Route path="/2fa" element={<TwoFactorAuth />} />
-                  <Route path="/verify-email/:token" element={<VerifyEmail />} />
-
-                  {/* Role Selection and Onboarding Routes */}
-                  <Route path="/role-selection" element={<PrivateRoute><RoleSelection /></PrivateRoute>} />
-                  <Route path="/onboarding/teacher" element={<PrivateRoute allowedRoles={['teacher']}><TeacherOnboarding /></PrivateRoute>} />
-                  <Route path="/onboarding/admin" element={<PrivateRoute allowedRoles={['admin']}><AdminOnboarding /></PrivateRoute>} />
-
-                  {/* ========== PERSON A - QUIZ ROUTES ========== */}
-                  {/* Student Quiz Routes */}
-                  <Route path="/quizzes" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <QuizList />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/quiz/:quizId/take/:attemptId" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <TakeQuiz />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/quiz/result/:attemptId" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <QuizResult />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/quiz-history" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <QuizHistory />
-                    </PrivateRoute>
-                  } />
-
-                  {/* Teacher Quiz Management Routes */}
-                  <Route path="/teacher/create-quiz" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <CreateQuiz />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/teacher/quiz/:quizId/questions" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <ManageQuestions />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/teacher/quiz/:quizId/edit" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <EditQuiz />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/teacher/ai-generate" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <AIQuestionGen />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/teacher/question-bank" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <QuestionBank />
-                    </PrivateRoute>
-                  } />
-
-                  {/* ========== PERSON B - USER & LEARNING ROUTES ========== */}
-                  {/* Dashboard Routes */}
-                  <Route path="/dashboard" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <DashboardPage />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/dashboard/student" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <StudentDashboard />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/dashboard/teacher" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <TeacherDashboard />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/dashboard/admin" element={
-                    <PrivateRoute allowedRoles={['admin']}>
-                      <AdminDashboard />
-                    </PrivateRoute>
-                  } />
-
-                  {/* Progress Routes */}
-                  <Route path="/progress" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <ProgressPage />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/progress/overview" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <ProgressOverview />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/progress/heatmap" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <Heatmap />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/progress/skill-gaps" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <SkillGapAnalysis />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/progress/topic/:topic" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <TopicDetails />
-                    </PrivateRoute>
-                  } />
-
-                  {/* Spaced Repetition Routes */}
-                  <Route path="/review" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <ReviewPage />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/review/queue" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <ReviewQueue />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/review/card/:id" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <ReviewCard />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/review/stats" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <ReviewStats />
-                    </PrivateRoute>
-                  } />
-
-                  {/* Gamification Routes */}
-                  <Route path="/leaderboard" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <LeaderboardPage />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/badges" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <BadgesDisplay />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/level" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <LevelProgress />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/achievements" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <Achievements />
-                    </PrivateRoute>
-                  } />
-
-                  {/* Profile Routes */}
-                  <Route path="/profile" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <ProfilePage />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/profile/settings" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <ProfileSettings />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/profile/preferences" element={
-                    <PrivateRoute allowedRoles={['student']}>
-                      <LearningPreferences />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/profile/notifications" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <NotificationSettings />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/profile/security" element={
-                    <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
-                      <SecuritySettings />
-                    </PrivateRoute>
-                  } />
-
-                  {/* Teacher Management Routes */}
-                  <Route path="/teacher/portal" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <TeacherPortal />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/teacher/students" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <StudentManagement />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/teacher/reports" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <ClassReports />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/teacher/assign/:quizId" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <AssignQuiz />
-                    </PrivateRoute>
-                  } />
-                  <Route path="/teacher/student/:studentId/progress" element={
-                    <PrivateRoute allowedRoles={['teacher', 'admin']}>
-                      <StudentProgressView />
-                    </PrivateRoute>
-                  } />
-
-                  {/* ========== 404 FALLBACK ========== */}
-                  <Route path="*" element={
-                    <div className="text-center py-12">
-                      <h1 className="text-4xl font-bold text-gray-700">404</h1>
-                      <p className="text-gray-500 mt-2">Page not found</p>
-                      <a href="/" className="text-blue-600 mt-4 inline-block">Go Home</a>
-                    </div>
-                  } />
-                </Routes>
-              </main>
-            </div>
-            <Footer />
-            <ToastNotification />
+            <main className="container mx-auto px-4 pt-28 pb-12">
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Showcase />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/showcase" element={<Showcase />} />
+                <Route path="/dashboard" element={
+                  <PrivateRoute allowedRoles={["student","teacher","admin"]}>
+                    <StudentDashboard />
+                  </PrivateRoute>
+                } />
+                <Route path="/profile" element={
+                  <PrivateRoute allowedRoles={["student","teacher","admin"]}>
+                    <ProfilePage />
+                  </PrivateRoute>
+                } />
+                
+                {/* Student Routes */}
+                <Route path="/quizzes" element={
+                  <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
+                    <QuizList />
+                  </PrivateRoute>
+                } />
+                <Route path="/quiz/:quizId/take/:attemptId" element={
+                  <PrivateRoute allowedRoles={['student']}>
+                    <TakeQuiz />
+                  </PrivateRoute>
+                } />
+                <Route path="/review" element={
+                  <PrivateRoute allowedRoles={['student','teacher','admin']}>
+                    <Review />
+                  </PrivateRoute>
+                } />
+                <Route path="/quiz/result/:attemptId" element={
+                  <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
+                    <QuizResult />
+                  </PrivateRoute>
+                } />
+                <Route path="/history" element={
+                  <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
+                    <QuizHistory />
+                  </PrivateRoute>
+                } />
+                <Route path="/progress" element={
+                  <PrivateRoute allowedRoles={['student','teacher','admin']}>
+                    <Progress />
+                  </PrivateRoute>
+                } />
+                <Route path="/leaderboard" element={
+                  <PrivateRoute allowedRoles={['student','teacher','admin']}>
+                    <Leaderboard />
+                  </PrivateRoute>
+                } />
+                
+                {/* Teacher Routes */}
+                <Route path="/teacher/create-quiz" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <CreateQuiz />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/quiz/:quizId/questions" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <ManageQuestions />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/quizzes" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <TeacherQuizzes />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/dashboard" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <TeacherDashboard />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/ai-generate" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <AIQuestionGen />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/question-bank" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <QuestionBank />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/students" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <TeacherStudents />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/students/:studentId/progress" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <StudentProgress />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/analytics" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <TeacherAnalytics />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/class-report" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <TeacherClassReport />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/quiz/:quizId/edit" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <EditQuiz />
+                  </PrivateRoute>
+                } />
+                <Route path="/admin/dashboard" element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </PrivateRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <UserManagement />
+                  </PrivateRoute>
+                } />
+                <Route path="/admin/cleanup" element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <AdminCleanup />
+                  </PrivateRoute>
+                } />
+              </Routes>
+            </main>
           </div>
         </QuizProvider>
       </AuthProvider>

@@ -1,6 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { useAuth } from '../../hooks/useAuth';
+import api from '../../services/api';
 
 const QuestionBank = () => {
   const [questions, setQuestions] = useState([]);
@@ -9,23 +8,10 @@ const QuestionBank = () => {
   const { token } = useAuth();
 
   useEffect(() => {
-    if (topic && token) {
-      const fetchQuestions = async () => {
-        setLoading(true);
-        try {
-          // ✅ FIXED: Use BACKTICKS, not forward slashes
-          const url = `/api/questions/topic/${topic}`;
-          const response = await axios.get(url, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          setQuestions(response.data.data || []);
-        } catch (error) {
-          console.error('Error fetching questions:', error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchQuestions();
+    if (topic) {
+      api.get(`/questions/topic/${encodeURIComponent(topic)}`)
+        .then((res) => setQuestions(res.data.data))
+        .catch((err) => console.error(err));
     }
   }, [topic, token]);
 

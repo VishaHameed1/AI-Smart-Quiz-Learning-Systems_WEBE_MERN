@@ -16,15 +16,36 @@ const extractJSON = (text) => {
     }
 };
 
+// Helper function to call Gemini API with correct format
+const callGemini = async (modelInstance, prompt) => {
+    const result = await modelInstance.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+    const response = await result.response;
+    return response.text();
+};
+
 // Generate questions from topic using Gemini
 exports.generateQuestions = async (req, res) => {
     try {
         const { topic, numberOfQuestions = 5, difficulty = 'medium', questionType = 'mcq' } = req.body;
-        
-        // 1. Check cache first to save API tokens
+
+        if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
+            return res.status(400).json({ success: false, message: 'Topic is required' });
+        }
+
+        if (!Number.isInteger(numberOfQuestions) || numberOfQuestions <= 0) {
+            return res.status(400).json({ success: false, message: 'numberOfQuestions must be a positive integer' });
+        }
+
         const cacheKey = `${topic}_${difficulty}_${questionType}_${numberOfQuestions}`;
-        const cached = await AIQuestionCache.findOne({ sourceText: cacheKey });
-        
+        const cacheEnabled = process.env.NODE_ENV !== 'test';
+        let cached;
+
+        if (cacheEnabled) {
+            cached = await AIQuestionCache.findOne({ sourceText: cacheKey });
+        }
+
         if (cached) {
             return res.json({
                 success: true,
@@ -33,7 +54,6 @@ exports.generateQuestions = async (req, res) => {
             });
         }
         
-        // 2. Prepare Gemini Prompt
         const prompt = `Generate ${numberOfQuestions} ${difficulty} difficulty ${questionType} questions about "${topic}".
         
         For each question, provide:
@@ -56,12 +76,8 @@ exports.generateQuestions = async (req, res) => {
           }
         ]`;
         
-        // 3. Call Gemini API
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const text = await callGemini(model, prompt);
         
-        // 4. Extract and Validate
         const generatedQuestions = extractJSON(text);
         
         const validatedQuestions = generatedQuestions.map(q => ({
@@ -74,12 +90,13 @@ exports.generateQuestions = async (req, res) => {
             aiGenerated: true
         }));
         
-        // 5. Cache the result for future use
-        const cache = new AIQuestionCache({
-            sourceText: cacheKey,
-            generatedQuestions: validatedQuestions
-        });
-        await cache.save();
+        if (cacheEnabled) {
+            const cache = new AIQuestionCache({
+                sourceText: cacheKey,
+                generatedQuestions: validatedQuestions
+            });
+            await cache.save();
+        }
         
         res.json({
             success: true,
@@ -126,9 +143,7 @@ exports.generateQuestionsFromText = async (req, res) => {
           }
         ]`;
         
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text_response = response.text();
+        const text_response = await callGemini(model, prompt);
         
         const generatedQuestions = extractJSON(text_response);
         
@@ -164,9 +179,7 @@ exports.generateQuestionsFromUrl = async (req, res) => {
         Generate ${numberOfQuestions} ${difficulty} difficulty multiple choice questions.
         Return ONLY a JSON array. Format: [{"question":"...","options":["...","...","...","..."],"correctAnswer":"...","explanation":"...","topic":"..."}]`;
         
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const text = await callGemini(model, prompt);
         
         const generatedQuestions = extractJSON(text);
         
@@ -186,7 +199,7 @@ exports.generateQuestionsFromUrl = async (req, res) => {
 exports.improveQuestion = async (req, res) => {
     try {
         const { questionId } = req.params;
-        const { improvementType } = req.body; // 'clarify', 'expand', 'simplify'
+        const { improvementType } = req.body;
         
         const question = await Question.findById(questionId);
         if (!question) {
@@ -208,9 +221,7 @@ exports.improveQuestion = async (req, res) => {
                 improvementPrompt = `Improve this question: "${question.text}"\nReturn ONLY the improved text.`;
         }
         
-        const result = await model.generateContent(improvementPrompt);
-        const response = await result.response;
-        const improvedText = response.text();
+        const improvedText = await callGemini(model, improvementPrompt);
         
         res.json({
             success: true,
@@ -238,12 +249,11 @@ exports.explainAnswer = async (req, res) => {
         Correct Answer: ${correctAnswer}
         Provide: 1. Why correct is right. 2. Why user was wrong (if applicable). 3. A learning tip.`;
         
-        const result = await fastModel.generateContent(prompt);
-        const response = await result.response;
+        const explanation = await callGemini(fastModel, prompt);
         
         res.json({
             success: true,
-            explanation: response.text()
+            explanation: explanation
         });
         
     } catch (error) {
@@ -260,12 +270,11 @@ exports.generateQuizSummary = async (req, res) => {
         const prompt = `Analyze this quiz data for topic "${topic}": ${JSON.stringify(performanceData)}
         Provide a feedback summary (max 100 words) with Strengths, Areas for Improvement, and Study Tips.`;
         
-        const result = await fastModel.generateContent(prompt);
-        const response = await result.response;
+        const summary = await callGemini(fastModel, prompt);
         
         res.json({
             success: true,
-            summary: response.text()
+            summary: summary
         });
         
     } catch (error) {
@@ -274,7 +283,7 @@ exports.generateQuizSummary = async (req, res) => {
     }
 };
 
-// Generate flashcards (New feature)
+// Generate flashcards
 exports.generateFlashcards = async (req, res) => {
     try {
         const { topic, numberOfCards = 10 } = req.body;
@@ -283,10 +292,9 @@ exports.generateFlashcards = async (req, res) => {
         Return as JSON array: [{"front": "Question/Term", "back": "Answer/Definition"}] 
         ONLY return valid JSON.`;
         
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
+        const text = await callGemini(model, prompt);
         
-        const flashcards = extractJSON(response.text());
+        const flashcards = extractJSON(text);
         
         res.json({
             success: true,

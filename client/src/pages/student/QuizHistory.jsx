@@ -1,13 +1,13 @@
 ﻿import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 
 const QuizHistory = () => {
   const [attempts, setAttempts] = useState([]);
 
   useEffect(() => {
-    axios.get('/api/attempts/user/my-attempts')
-      .then(res => setAttempts(res.data.data))
-      .catch(err => console.error(err));
+    api.get('/attempts/user/my-attempts')
+      .then((res) => setAttempts(res.data.data))
+      .catch((err) => console.error(err));
   }, []);
 
   return (

@@ -1,104 +1,88 @@
 ﻿import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-
-const studentNavItems = [
-  { label: 'Home', to: '/home' },
-  { label: 'Dashboard', to: '/dashboard/student' },
-  { label: 'Progress', to: '/progress' },
-  { label: 'Quizzes', to: '/quizzes' },
-];
-
-const teacherNavItems = [
-  { label: 'Home', to: '/home' },
-  { label: 'Dashboard', to: '/dashboard/teacher' },
-  { label: 'Students', to: '/teacher/students' },
-  { label: 'Create Quiz', to: '/teacher/create-quiz' },
-  { label: 'Analytics', to: '/teacher/analytics' },
-];
-
-const adminNavItems = [
-  { label: 'Home', to: '/home' },
-  { label: 'Dashboard', to: '/dashboard/admin' },
-  { label: 'User Management', to: '/admin/users' },
-  { label: 'System Overview', to: '/admin/overview' },
-  { label: 'Create User', to: '/admin/create-user' },
-];
+import { Link } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
+import { useAuth } from '../../context/AuthContext';
+import { Bell } from 'lucide-react';
+import api from '../../services/api';
+import { useEffect, useState } from 'react';
 
 const Navbar = () => {
-  const { user, logout, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { token, logout, user } = useAuth();
+  const [due, setDue] = useState(0);
 
-  let currentNavItems = [];
+  useEffect(() => {
+    let mounted = true;
+    if (token) {
+      api.get('/review/due/count').then(r => { if (mounted) setDue(r.data.data.count || 0); }).catch(()=>{});
+    }
+    return () => { mounted = false; };
+  }, [token]);
 
   return (
-    <nav className="sticky top-0 z-30 h-20 border-b border-white/30 bg-white/60 backdrop-blur-xl">
-      <div className="mx-auto flex h-full max-w-[1720px] items-center justify-between gap-4 px-6">
-        <Link to="/" className="flex items-center gap-3 text-slate-900">
-          <div className="flex h-[40px] w-[40px] items-center justify-center rounded-[12px] bg-gradient-to-br from-sky-500 to-violet-300 text-white shadow-glow">
-            <span className="text-lg font-bold">Q</span>
-          </div>
+    <header className="fixed top-4 left-0 right-0 z-50 flex justify-center">
+      <div className="glass-card max-w-[1280px] w-full mx-4 px-6 py-3 rounded-full border-white/10 backdrop-blur-xl shadow-soft flex items-center gap-4">
+        <Link to="/" className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center text-sm font-black text-slate-950">IQ</div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">AI Quiz</p>
+            <div className="text-sm font-semibold text-slate-100">AI Smart Quiz</div>
+            <div className="text-[11px] text-slate-400 uppercase tracking-[0.3em]">Live Studio</div>
           </div>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-700">
-          {isAuthenticated && user ? (
-            (() => {
-              switch (user.role) {
-                case 'student':
-                  currentNavItems = studentNavItems;
-                  break;
-                case 'teacher':
-                  currentNavItems = teacherNavItems;
-                  break;
-                case 'admin':
-                  currentNavItems = adminNavItems;
-                  break;
-                default:
-                  currentNavItems = studentNavItems;
-              }
-              return currentNavItems;
-            })()
-          ) : (
-            [{ label: 'Home', to: '/home' }, { label: 'Quizzes', to: '/quizzes' }] // Public view
-          ).map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="relative transition duration-500 hover:text-slate-900"
-            >
-              {item.label}
-              <span className="absolute inset-x-0 -bottom-2 h-[2px] scale-x-0 bg-slate-900 transition-transform duration-500 hover:scale-x-100" />
-            </Link>
-          ))}
-        </div>
+        {/* Student Links */}
+        {token && user?.role === 'student' && (
+          <div className="hidden lg:flex flex-1 justify-center gap-8">
+            <Link to="/dashboard" className="nav-link text-sm font-medium text-slate-300">Dashboard</Link>
+            <Link to="/quizzes" className="nav-link text-sm font-medium text-slate-300">Quizzes</Link>
+            <Link to="/progress" className="nav-link text-sm font-medium text-slate-300">Progress</Link>
+            <Link to="/review" className="nav-link text-sm font-medium text-slate-300">Review</Link>
+            <Link to="/leaderboard" className="nav-link text-sm font-medium text-slate-300">Leaderboard</Link>
+          </div>
+        )}
 
-        <div className="flex items-center gap-4">
-          {isAuthenticated ? (
-            <>
-              <span className="text-sm font-semibold text-slate-700">Welcome, {user.name}!</span>
-              <button
-                onClick={() => { logout(); navigate('/login'); }}
-                className="text-sm font-semibold text-slate-700 hover:text-slate-900"
-              >
-                Logout
-              </button>
-            </>
+        {/* Teacher & Admin Links */}
+        {token && (user?.role === 'teacher' || user?.role === 'admin') && (
+          <div className="hidden lg:flex flex-1 justify-center gap-8">
+            <Link to="/" className="nav-link text-sm font-medium text-slate-300">Home</Link>
+            <Link to="/quizzes" className="nav-link text-sm font-medium text-slate-300">Quizzes</Link>
+            <Link to="/teacher/dashboard" className="nav-link text-sm font-medium text-slate-300">Teacher Dashboard</Link>
+            <Link to="/teacher/create-quiz" className="nav-link text-sm font-medium text-slate-300">Create Quiz</Link>
+            <Link to="/teacher/ai-generate" className="nav-link text-sm font-medium text-slate-300">AI Tools</Link>
+            {user?.role === 'admin' && (
+              <Link to="/admin/dashboard" className="nav-link text-sm font-medium text-slate-300">Admin</Link>
+            )}
+          </div>
+        )}
+
+        {/* Non-logged in links */}
+        {!token && (
+          <div className="hidden lg:flex flex-1 justify-center gap-8">
+            <Link to="/" className="nav-link text-sm font-medium text-slate-300">Home</Link>
+            <Link to="/quizzes" className="nav-link text-sm font-medium text-slate-300">Quizzes</Link>
+            <Link to="/leaderboard" className="nav-link text-sm font-medium text-slate-300">Leaderboard</Link>
+          </div>
+        )}
+
+        <div className="ml-auto flex items-center gap-3">
+          <ThemeToggle />
+          {token && (
+            <Link to="/review" className="relative">
+              <Bell className="w-6 h-6 text-slate-200" />
+              {due > 0 && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{due}</span>}
+            </Link>
+          )}
+          {token ? (
+            <button onClick={logout} className="inline-flex items-center rounded-full bg-white text-slate-950 font-semibold px-5 py-2 shadow hover:bg-slate-100 transition">
+              Sign Out
+            </button>
           ) : (
-            <>
-              <Link to="/login" className="text-sm font-semibold text-slate-700 hover:text-slate-900">
-                Login
-              </Link>
-              <Link to="/register" className="glow-cta inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold">
-                Get Started
-              </Link>
-            </>
+            <Link to="/login" className="inline-flex items-center rounded-full bg-white text-slate-950 font-semibold px-5 py-2 shadow hover:bg-slate-100 transition">
+              Launch App
+            </Link>
           )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 };
 

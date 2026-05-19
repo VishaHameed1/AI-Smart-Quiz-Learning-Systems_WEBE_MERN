@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Brain, Trophy, Filter } from 'lucide-react';
+import { Clock, Brain, Trophy, Filter, Search } from 'lucide-react';
+import { getAllQuizzes } from '../../services/quizService';
+import { startQuiz as startQuizAttempt } from '../../services/attemptService';
+import GlassCard from '../../components/common/GlassCard';
+import CyanButton from '../../components/common/CyanButton';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const QuizList = () => {
   const [quizzes, setQuizzes] = useState([]);
@@ -16,52 +20,22 @@ const QuizList = () => {
   const fetchQuizzes = async () => {
     try {
       setLoading(true);
-      
-      // ✅ Get token from localStorage
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        console.error('No token found, redirecting to login');
-        navigate('/login');
-        return;
-      }
-
-      const params = new URLSearchParams(filters);
-      const response = await axios.get(`/api/quizzes?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      setQuizzes(response.data.data || []);
+      const data = await getAllQuizzes(filters);
+      setQuizzes(data || []);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
-      if (error.response?.status === 401) {
-        // Token expired or invalid
-        localStorage.removeItem('token');
-        navigate('/login');
-      }
+      setQuizzes([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const startQuiz = async (quizId) => {
+  const handleStartQuiz = async (quizId) => {
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        navigate('/login');
-        return;
+      const attempt = await startQuizAttempt(quizId);
+      if (attempt && attempt._id) {
+        navigate(`/quiz/${quizId}/take/${attempt._id}`);
       }
-
-      const response = await axios.post(`/api/attempts/quiz/${quizId}/start`, {}, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      navigate(`/quiz/${quizId}/take/${response.data.data._id}`);
     } catch (error) {
       console.error('Error starting quiz:', error);
       if (error.response?.status === 401) {
@@ -73,11 +47,11 @@ const QuizList = () => {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'hard': return 'bg-orange-100 text-orange-800';
-      case 'expert': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'easy': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'medium': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
+      case 'hard': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+      case 'expert': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     }
   };
 
@@ -91,31 +65,31 @@ const QuizList = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div className="glass-panel p-8">
-          <h1 className="text-3xl font-semibold text-slate-950">Available Quizzes</h1>
-          <p className="mt-3 text-slate-600">Challenge yourself with adaptive quizzes designed for your learning level.</p>
+    <div className="min-h-screen bg-[#030712] p-6">
+      {/* Background grid */}
+      <div className="fixed inset-0 bg-[url('data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'40\' height=\'40\' viewBox=\'0 0 40 40\'%3E%3Cpath fill=\'rgba(255,255,255,0.02)\' d=\'M0 0h40v40H0z\'/%3E%3C/svg%3E')] pointer-events-none" />
+      
+      <div className="relative z-10 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white">Available Quizzes</h1>
+          <p className="text-slate-400 mt-2">Test your knowledge with our interactive quizzes</p>
         </div>
 
-        {/* Filters */}
-        <div className="glass-panel p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 sm:flex-wrap">
+        {/* Filters - Glass Style */}
+        <GlassCard className="p-5 mb-6" glowLine>
+          <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-slate-500" />
-              <span className="text-sm font-medium text-slate-700">Filters:</span>
+              <Filter className="w-5 h-5 text-cyan-400" />
+              <span className="text-sm font-medium text-slate-300">Filters:</span>
             </div>
             
             <select
-              className="glass-input flex-1 min-w-[150px]"
+              className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm focus:outline-none focus:border-cyan-400/50"
               value={filters.type}
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
             >
@@ -127,7 +101,7 @@ const QuizList = () => {
             </select>
             
             <select
-              className="glass-input flex-1 min-w-[150px]"
+              className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm focus:outline-none focus:border-cyan-400/50"
               value={filters.difficulty}
               onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
             >
@@ -138,61 +112,53 @@ const QuizList = () => {
               <option value="expert">Expert</option>
             </select>
             
-            <input
-              type="text"
-              placeholder="Search quizzes..."
-              className="glass-input flex-1 min-w-[150px]"
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            />
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search quizzes..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-400/50"
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              />
+            </div>
           </div>
-        </div>
+        </GlassCard>
 
         {/* Quiz Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quizzes.map((quiz) => (
-            <div key={quiz._id} className="glass-panel p-6 flex flex-col gap-4">
-              <div className="flex items-start justify-between">
-                <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em]">
+            <GlassCard key={quiz._id} className="p-6" hover3d glowLine>
+              <div className="flex items-center justify-between mb-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(quiz.difficulty)}`}>
+                  {quiz.difficulty?.charAt(0).toUpperCase() + quiz.difficulty?.slice(1) || 'Medium'}
+                </span>
+                <div className="flex items-center gap-1 text-slate-400 text-sm">
                   {getTypeIcon(quiz.type)}
-                  {quiz.type.charAt(0).toUpperCase() + quiz.type.slice(1)}
-                </span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700">
-                  {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)}
-                </span>
+                  <span className="capitalize">{quiz.type || 'Practice'}</span>
+                </div>
               </div>
               
-              <div>
-                <h3 className="text-lg font-semibold text-slate-950">{quiz.title}</h3>
-                <p className="mt-2 line-clamp-2 text-sm text-slate-600">{quiz.description}</p>
+              <h3 className="text-xl font-bold text-white mb-2">{quiz.title}</h3>
+              <p className="text-slate-400 text-sm mb-4 line-clamp-2">{quiz.description || 'No description available'}</p>
+              
+              <div className="flex items-center justify-between text-sm text-slate-400 mb-5">
+                <span>📋 {quiz.totalQuestions || 0} questions</span>
+                <span>⏱️ {quiz.duration || 0} min</span>
+                <span>🎯 {quiz.passingScore || 60}% to pass</span>
               </div>
               
-              <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                <span>📋 {quiz.totalQuestions} questions</span>
-                <span>⏱️ {quiz.duration} min</span>
-                <span>🎯 {quiz.passingScore}% to pass</span>
-              </div>
-              
-              <button
-                onClick={() => startQuiz(quiz._id)}
-                className="glass-button mt-auto w-full text-center"
-              >
+              <CyanButton onClick={() => handleStartQuiz(quiz._id)} fullWidth size="sm" glow>
                 Start Quiz
-              </button>
-            </div>
+              </CyanButton>
+            </GlassCard>
           ))}
         </div>
         
-        {quizzes.length === 0 && !loading && (
-          <div className="glass-panel p-12 text-center">
-            <p className="text-slate-600">No quizzes found. Check back later!</p>
-          </div>
-        )}
-
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
+        {quizzes.length === 0 && (
+          <GlassCard className="text-center py-12">
+            <p className="text-slate-400">No quizzes found. Check back later!</p>
+          </GlassCard>
         )}
       </div>
     </div>

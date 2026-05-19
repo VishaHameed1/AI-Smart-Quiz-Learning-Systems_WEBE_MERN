@@ -1,117 +1,73 @@
-const cleanupService = require('../services/cleanupService');
+const Attempt = require('../models/Attempt');
+const Review = require('../models/Review');
+const AIQuestionCache = require('../models/AIQuestionCache');
 
-// Run full cleanup
-exports.runFullCleanup = async (req, res) => {
+exports.fullCleanup = async (req, res) => {
   try {
-    const options = req.body; // Allow custom options via request body
-    const result = await cleanupService.runFullCleanup(options);
-
-    res.json(result);
+    // default thresholds
+    await Attempt.deleteMany({ createdAt: { $lt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30) } });
+    await Review.deleteMany({ createdAt: { $lt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 365) } });
+    await AIQuestionCache.deleteMany({ createdAt: { $lt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30) } });
+    res.json({ success: true, message: 'Full cleanup executed' });
   } catch (error) {
-    console.error('Cleanup error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to run cleanup',
-      error: error.message
-    });
+    console.error('FullCleanup Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// Delete old attempts
 exports.deleteOldAttempts = async (req, res) => {
   try {
-    const daysOld = parseInt(req.params.days) || 365;
-    const result = await cleanupService.deleteOldAttempts(daysOld);
-
-    res.json({
-      success: true,
-      data: result
-    });
+    const days = Number(req.params.days) || 30;
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const result = await Attempt.deleteMany({ createdAt: { $lt: cutoff } });
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('Delete old attempts error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete old attempts',
-      error: error.message
-    });
+    console.error('DeleteOldAttempts Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// Delete abandoned attempts
 exports.deleteAbandonedAttempts = async (req, res) => {
   try {
-    const daysOld = parseInt(req.params.days) || 30;
-    const result = await cleanupService.deleteAbandonedAttempts(daysOld);
-
-    res.json({
-      success: true,
-      data: result
-    });
+    const days = Number(req.params.days) || 7;
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const result = await Attempt.deleteMany({ status: 'in-progress', updatedAt: { $lt: cutoff } });
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('Delete abandoned attempts error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete abandoned attempts',
-      error: error.message
-    });
+    console.error('DeleteAbandoned Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// Delete old review items
-exports.deleteOldReviewItems = async (req, res) => {
+exports.deleteOldReviews = async (req, res) => {
   try {
-    const daysOld = parseInt(req.params.days) || 90;
-    const result = await cleanupService.deleteOldReviewItems(daysOld);
-
-    res.json({
-      success: true,
-      data: result
-    });
+    const days = Number(req.params.days) || 365;
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const result = await Review.deleteMany({ updatedAt: { $lt: cutoff } });
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('Delete old review items error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete old review items',
-      error: error.message
-    });
+    console.error('DeleteOldReviews Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// Clean progress history
-exports.cleanProgressHistory = async (req, res) => {
+exports.deleteProgressHistory = async (req, res) => {
   try {
-    const keepLast = parseInt(req.params.keep) || 50;
-    const result = await cleanupService.cleanProgressHistory(keepLast);
-
-    res.json({
-      success: true,
-      data: result
-    });
+    // If Progress model exists, clear history; otherwise respond OK
+    res.json({ success: true, message: 'Progress history cleanup not implemented' });
   } catch (error) {
-    console.error('Clean progress history error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to clean progress history',
-      error: error.message
-    });
+    console.error('DeleteProgressHistory Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
-// Clean expired AI cache
-exports.cleanExpiredAICache = async (req, res) => {
+exports.deleteAICache = async (req, res) => {
   try {
-    const result = await cleanupService.cleanExpiredAICache();
-
-    res.json({
-      success: true,
-      data: result
-    });
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const result = await AIQuestionCache.deleteMany({ createdAt: { $lt: cutoff } });
+    res.json({ success: true, data: result });
   } catch (error) {
-    console.error('Clean AI cache error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to clean AI cache',
-      error: error.message
-    });
+    console.error('DeleteAICache Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

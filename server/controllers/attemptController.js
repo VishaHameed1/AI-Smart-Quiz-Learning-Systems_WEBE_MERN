@@ -31,7 +31,11 @@ exports.startQuiz = async (req, res) => {
       userId: req.user.id,
       quizId,
       startTime: new Date(),
-      status: 'in-progress'
+      status: 'in-progress',
+      answers: [],
+      earnedPoints: 0,
+      score: 0,
+      percentageScore: 0
     });
     
     await attempt.save();
@@ -42,8 +46,8 @@ exports.startQuiz = async (req, res) => {
       data: attempt
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Start quiz error:', error);
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 };
 
@@ -77,18 +81,20 @@ exports.submitAnswer = async (req, res) => {
     } else if (question.type === 'true-false') {
       isCorrect = selectedAnswer === question.correctAnswer;
     } else if (question.type === 'multiple-select') {
-      isCorrect = JSON.stringify(selectedAnswer.sort()) === JSON.stringify(question.correctAnswer.sort());
+      try {
+        isCorrect = JSON.stringify(selectedAnswer.sort()) === JSON.stringify(question.correctAnswer.sort());
+      } catch(e) {
+        isCorrect = selectedAnswer === question.correctAnswer;
+      }
     }
     
     if (isCorrect) {
-      pointsEarned = question.points;
-      
-      // Update question statistics
-      question.correctCount += 1;
+      pointsEarned = question.points || 10;
+      question.correctCount = (question.correctCount || 0) + 1;
     } else {
-      question.wrongCount += 1;
+      question.wrongCount = (question.wrongCount || 0) + 1;
     }
-    question.timesUsed += 1;
+    question.timesUsed = (question.timesUsed || 0) + 1;
     await question.save();
     
     // Add answer to attempt
@@ -96,13 +102,12 @@ exports.submitAnswer = async (req, res) => {
       questionId,
       selectedAnswer,
       isCorrect,
-      timeTaken,
+      timeTaken: timeTaken || 0,
       pointsEarned,
-      feedback: isCorrect ? question.explanation : `Incorrect. ${question.explanation}`
+      feedback: isCorrect ? (question.explanation || 'Correct!') : `Incorrect. ${question.explanation || ''}`
     });
     
-    attempt.earnedPoints += pointsEarned;
-    
+    attempt.earnedPoints = (attempt.earnedPoints || 0) + pointsEarned;
     await attempt.save();
     
     res.json({
@@ -117,8 +122,8 @@ exports.submitAnswer = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Submit answer error:', error);
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 };
 
@@ -127,8 +132,7 @@ exports.completeQuiz = async (req, res) => {
   try {
     const { attemptId } = req.params;
     
-    const attempt = await Attempt.findById(attemptId)
-      .populate('quizId');
+    const attempt = await Attempt.findById(attemptId).populate('quizId');
     
     if (!attempt) {
       return res.status(404).json({ success: false, message: 'Attempt not found' });
@@ -145,7 +149,7 @@ exports.completeQuiz = async (req, res) => {
     const totalQuestions = attempt.answers.length;
     const correctAnswers = attempt.answers.filter(a => a.isCorrect).length;
     attempt.score = correctAnswers;
-    attempt.percentageScore = (correctAnswers / totalQuestions) * 100;
+    attempt.percentageScore = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
     
     await attempt.save();
     
@@ -157,7 +161,7 @@ exports.completeQuiz = async (req, res) => {
     const topicMastery = {};
     for (const answer of attempt.answers) {
       const question = questions.find(q => q._id.toString() === answer.questionId.toString());
-      if (question) {
+      if (question && question.topic) {
         if (!topicMastery[question.topic]) {
           topicMastery[question.topic] = { total: 0, correct: 0 };
         }
@@ -183,13 +187,13 @@ exports.completeQuiz = async (req, res) => {
         totalQuestions,
         correctAnswers,
         topicMastery: masteryScores,
-        passed: attempt.percentageScore >= attempt.quizId.passingScore,
+        passed: attempt.quizId ? attempt.percentageScore >= (attempt.quizId.passingScore || 50) : false,
         earnedPoints: attempt.earnedPoints
       }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Complete quiz error:', error);
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 };
 
@@ -211,14 +215,17 @@ exports.getQuizResults = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     
+    const totalQuestions = attempt.answers.length;
+    const correctAnswers = attempt.answers.filter(a => a.isCorrect).length;
+    
     // Prepare detailed results
     const detailedResults = attempt.answers.map(answer => ({
-      questionId: answer.questionId._id,
-      questionText: answer.questionId.text,
+      questionId: answer.questionId?._id,
+      questionText: answer.questionId?.text || 'Question not found',
       userAnswer: answer.selectedAnswer,
-      correctAnswer: answer.questionId.correctAnswer,
+      correctAnswer: answer.questionId?.correctAnswer,
       isCorrect: answer.isCorrect,
-      explanation: answer.questionId.explanation,
+      explanation: answer.questionId?.explanation,
       timeTaken: answer.timeTaken,
       pointsEarned: answer.pointsEarned
     }));
@@ -226,22 +233,23 @@ exports.getQuizResults = async (req, res) => {
     res.json({
       success: true,
       data: {
-        quizTitle: attempt.quizId.title,
+        quizTitle: attempt.quizId?.title || 'Quiz',
         score: attempt.score,
+        totalQuestions,
+        correctAnswers,
         percentageScore: attempt.percentageScore,
-        passed: attempt.percentageScore >= attempt.quizId.passingScore,
-        totalPoints: attempt.totalPoints,
+        passed: attempt.quizId ? attempt.percentageScore >= (attempt.quizId.passingScore || 50) : false,
         earnedPoints: attempt.earnedPoints,
         startTime: attempt.startTime,
         endTime: attempt.endTime,
-        duration: (attempt.endTime - attempt.startTime) / 1000 / 60, // minutes
+        duration: attempt.endTime ? (attempt.endTime - attempt.startTime) / 1000 / 60 : 0,
         topicMastery: attempt.topicMastery,
         detailedResults
       }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Get results error:', error);
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 };
 
@@ -258,7 +266,7 @@ exports.getUserAttempts = async (req, res) => {
       data: attempts
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Get attempts error:', error);
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 };

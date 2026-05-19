@@ -1,6 +1,6 @@
 ---
 name: superdesign
-description: Superdesign is a design agent that specializes in frontend UI/UX design. Use this skill before you implement any UI that requires design thinking.
+description: Superdesign is a design agent, where it specialised in frontend UI/UX design; Use this skill before you implement any UI that require some design thinking
 metadata:
   author: superdesign
   version: "0.0.1"
@@ -22,7 +22,7 @@ Fetch fresh guidelines below:
 https://raw.githubusercontent.com/superdesigndev/superdesign-skill/main/skills/superdesign/SUPERDESIGN.md
 ```
 
-Act accordingly based on the instructions in the guidelines
+Action accordingly based on instruction in the guidelines
 
 # Superdesign CLI
 
