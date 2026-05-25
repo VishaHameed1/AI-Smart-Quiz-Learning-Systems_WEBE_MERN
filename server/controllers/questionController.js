@@ -4,7 +4,11 @@ const Quiz = require('../models/Quiz');
 // Add question to quiz
 exports.addQuestion = async (req, res) => {
   try {
-    const { quizId } = req.params;
+    const quizId = req.params.quizId || req.body.quizId;
+    if (!quizId) {
+      return res.status(400).json({ success: false, message: 'Quiz ID is required' });
+    }
+
     const { text, type, options, correctAnswer, explanation, difficulty, topic, subtopic, tags, timeLimit, points } = req.body;
     
     const quiz = await Quiz.findById(quizId);
@@ -13,7 +17,7 @@ exports.addQuestion = async (req, res) => {
     }
     
     // Check if user owns the quiz
-    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (quiz.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     
@@ -30,7 +34,7 @@ exports.addQuestion = async (req, res) => {
       tags,
       timeLimit,
       points,
-      createdBy: req.user.id
+      createdBy: req.user._id
     });
     
     await question.save();
@@ -53,28 +57,33 @@ exports.addQuestion = async (req, res) => {
 // Bulk upload questions
 exports.bulkUploadQuestions = async (req, res) => {
   try {
-    const { quizId } = req.params;
+    const quizId = req.params.quizId || req.body.quizId;
     const { questions } = req.body;
+
+    if (!quizId) {
+      return res.status(400).json({ success: false, message: 'Quiz ID is required' });
+    }
+
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ success: false, message: 'A non-empty questions array is required' });
+    }
     
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
     
-    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (quiz.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     
-    const savedQuestions = [];
-    for (const q of questions) {
-      const question = new Question({
-        quizId,
-        ...q,
-        createdBy: req.user.id
-      });
-      await question.save();
-      savedQuestions.push(question);
-    }
+    const questionsToSave = questions.map(q => ({
+      ...q,
+      quizId,
+      createdBy: req.user._id
+    }));
+
+    const savedQuestions = await Question.insertMany(questionsToSave);
     
     quiz.totalQuestions += questions.length;
     await quiz.save();
@@ -100,7 +109,7 @@ exports.updateQuestion = async (req, res) => {
     }
     
     // Check if user owns the quiz
-    if (question.quizId.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (question.quizId.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     
@@ -131,7 +140,7 @@ exports.deleteQuestion = async (req, res) => {
     }
     
     // Check if user owns the quiz
-    if (question.quizId.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (question.quizId.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     

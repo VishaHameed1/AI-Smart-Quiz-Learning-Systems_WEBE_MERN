@@ -1,6 +1,7 @@
 const Attempt = require('../models/Attempt');
 const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
+const Enrollment = require('../models/Enrollment.model');
 
 // Start quiz attempt
 exports.startQuiz = async (req, res) => {
@@ -12,6 +13,22 @@ exports.startQuiz = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
     
+    // Security: Check if quiz requires enrollment and if student is accepted
+    if (quiz.requiresEnrollment) {
+      const enrollment = await Enrollment.findOne({
+        student: req.user.id,
+        quiz: quizId,
+        status: 'accepted'
+      });
+
+      if (!enrollment) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access Denied: You must be enrolled and accepted by the teacher to take this quiz.'
+        });
+      }
+    }
+
     // Check if user already has an in-progress attempt
     const existingAttempt = await Attempt.findOne({
       userId: req.user.id,
@@ -75,36 +92,52 @@ exports.submitAnswer = async (req, res) => {
     // Check if answer is correct
     let isCorrect = false;
     let pointsEarned = 0;
+    let answerStatus = 'correct';
     
     if (question.type === 'mcq') {
       isCorrect = selectedAnswer === question.correctAnswer;
+      answerStatus = isCorrect ? 'correct' : 'incorrect';
     } else if (question.type === 'true-false') {
       isCorrect = selectedAnswer === question.correctAnswer;
+      answerStatus = isCorrect ? 'correct' : 'incorrect';
     } else if (question.type === 'multiple-select') {
       try {
         isCorrect = JSON.stringify(selectedAnswer.sort()) === JSON.stringify(question.correctAnswer.sort());
+        answerStatus = isCorrect ? 'correct' : 'incorrect';
       } catch(e) {
         isCorrect = selectedAnswer === question.correctAnswer;
+        answerStatus = isCorrect ? 'correct' : 'incorrect';
       }
+    } else if (question.type === 'theoretical') {
+      // Theoretical questions are flagged for manual review
+      isCorrect = false;
+      pointsEarned = 0;
+      answerStatus = 'pending-grade';
     }
     
-    if (isCorrect) {
+    if (isCorrect && question.type !== 'theoretical') {
       pointsEarned = question.points || 10;
       question.correctCount = (question.correctCount || 0) + 1;
-    } else {
+    } else if (question.type !== 'theoretical') {
       question.wrongCount = (question.wrongCount || 0) + 1;
     }
-    question.timesUsed = (question.timesUsed || 0) + 1;
-    await question.save();
+
+    if (question.type !== 'theoretical') {
+      question.timesUsed = (question.timesUsed || 0) + 1;
+      await question.save();
+    }
     
     // Add answer to attempt
     attempt.answers.push({
       questionId,
       selectedAnswer,
       isCorrect,
+      status: answerStatus,
       timeTaken: timeTaken || 0,
       pointsEarned,
-      feedback: isCorrect ? (question.explanation || 'Correct!') : `Incorrect. ${question.explanation || ''}`
+      feedback: question.type === 'theoretical' 
+        ? 'Waiting for teacher review' 
+        : (isCorrect ? (question.explanation || 'Correct!') : `Incorrect. ${question.explanation || ''}`)
     });
     
     attempt.earnedPoints = (attempt.earnedPoints || 0) + pointsEarned;
@@ -114,11 +147,14 @@ exports.submitAnswer = async (req, res) => {
       success: true,
       message: 'Answer submitted',
       data: {
-        isCorrect,
+        isCorrect: question.type === 'theoretical' ? null : isCorrect,
+        status: answerStatus,
         pointsEarned,
-        correctAnswer: isCorrect ? null : question.correctAnswer,
+        correctAnswer: (isCorrect || question.type === 'theoretical') ? null : question.correctAnswer,
         explanation: question.explanation,
-        feedback: isCorrect ? 'Correct! Well done!' : `Incorrect. The correct answer is: ${question.correctAnswer}`
+        feedback: question.type === 'theoretical' 
+          ? 'Theoretical answer submitted for review.' 
+          : (isCorrect ? 'Correct! Well done!' : `Incorrect. The correct answer is: ${question.correctAnswer}`)
       }
     });
   } catch (error) {
@@ -143,7 +179,10 @@ exports.completeQuiz = async (req, res) => {
     }
     
     attempt.endTime = new Date();
-    attempt.status = 'completed';
+    
+    // If any theoretical questions are present, mark status for review
+    const hasPending = attempt.answers.some(a => a.status === 'pending-grade');
+    attempt.status = hasPending ? 'completed-pending-review' : 'completed';
     
     // Calculate final score
     const totalQuestions = attempt.answers.length;
@@ -193,6 +232,42 @@ exports.completeQuiz = async (req, res) => {
     });
   } catch (error) {
     console.error('Complete quiz error:', error);
+    res.status(500).json({ success: false, message: 'Server error: ' + error.message });
+  }
+};
+
+// Grade a theoretical answer manually (Teacher/Admin only)
+exports.gradeTheoreticalAnswer = async (req, res) => {
+  try {
+    const { attemptId, answerId } = req.params;
+    const { pointsAwarded, feedback, isCorrect } = req.body;
+
+    const attempt = await Attempt.findById(attemptId);
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found' });
+
+    const answer = attempt.answers.id(answerId);
+    if (!answer) return res.status(404).json({ success: false, message: 'Answer not found' });
+
+    // Update answer properties
+    answer.pointsEarned = pointsAwarded;
+    answer.feedback = feedback;
+    answer.isCorrect = isCorrect;
+    answer.status = isCorrect ? 'correct' : 'incorrect';
+
+    // Recalculate total points for the attempt
+    attempt.earnedPoints = attempt.answers.reduce((sum, a) => sum + (a.pointsEarned || 0), 0);
+
+    // If all questions are now graded, update the overall attempt status
+    const stillPending = attempt.answers.some(a => a.status === 'pending-grade');
+    if (!stillPending && attempt.status === 'completed-pending-review') {
+      attempt.status = 'completed';
+    }
+
+    await attempt.save();
+
+    res.json({ success: true, message: 'Grade assigned successfully', data: attempt });
+  } catch (error) {
+    console.error('Manual grade error:', error);
     res.status(500).json({ success: false, message: 'Server error: ' + error.message });
   }
 };

@@ -8,7 +8,8 @@ const {
   verifyEmail, 
   updateProfile, 
   changePassword,
-  createUser
+  createUser,
+  socialLogin
 } = require('../controllers/auth.controller');
 const { auth, roleCheck } = require('../middleware/auth');
 const { body } = require('express-validator');
@@ -22,6 +23,7 @@ const registerValidation = [
   body('name').notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('role').optional().isIn(['student', 'teacher', 'admin']).withMessage('Invalid role'),
   validate
 ];
 
@@ -68,6 +70,7 @@ router.post('/login', authLimiter, loginValidation, login);
 router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
 router.post('/reset-password', resetPasswordValidation, resetPassword);
 router.get('/verify-email/:token', verifyEmail);
+router.post('/social-login', socialLogin);
 
 // ========== ADMIN ROUTES ==========
 router.post('/create-user', auth, roleCheck(['admin']), createUserValidation, createUser);

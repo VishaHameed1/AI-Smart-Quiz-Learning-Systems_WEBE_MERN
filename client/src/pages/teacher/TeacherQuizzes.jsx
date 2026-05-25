@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import teacherService from '../../services/teacherService';
 import api from '../../services/api';
 
 const TeacherQuizzes = () => {
@@ -12,7 +11,7 @@ const TeacherQuizzes = () => {
   useEffect(() => {
     const loadQuizzes = async () => {
       try {
-        const res = await teacherService.getQuizzes();
+        const res = await api.get('/teacher/quizzes');
         setQuizzes(res.data.data || []);
       } catch (err) {
         console.error(err);
@@ -74,7 +73,7 @@ const TeacherQuizzes = () => {
                 <div>
                   <h2 className="text-xl font-semibold text-white">{quiz.title}</h2>
                   <p className="text-slate-400">{quiz.description}</p>
-                  <div className="mt-2 text-sm text-slate-500">Questions: {quiz.totalQuestions ?? 0} · Difficulty: {quiz.difficulty} · Duration: {quiz.duration} min</div>
+                  <div className="mt-2 text-sm text-slate-500">Difficulty: {quiz.difficulty} · Duration: {quiz.duration} min</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -82,6 +81,12 @@ const TeacherQuizzes = () => {
                     className="rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
                   >
                     Manage
+                  </button>
+                  <button
+                    onClick={() => navigate(`/teacher/quiz/${quiz._id}/print`)}
+                    className="rounded-full bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-500"
+                  >
+                    Print
                   </button>
                   <button
                     onClick={() => navigate(`/teacher/quiz/${quiz._id}/edit`)}

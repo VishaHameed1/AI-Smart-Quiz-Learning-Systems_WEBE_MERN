@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, GraduationCap, ShieldCheck } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from './hooks/useAuth';
 
 const RoleSelection = () => {
   const { updateProfile } = useAuth();
@@ -11,10 +11,10 @@ const RoleSelection = () => {
   useEffect(() => {
     if (!loading && isAuthenticated && user?.onboardingCompleted) {
       // If user is authenticated and onboarding is completed, redirect to their dashboard
-      navigate(`/dashboard/${user.role}`);
+      navigate(`/dashboard/${user.role}`, { replace: true });
     } else if (!loading && isAuthenticated && user?.role && !user.onboardingCompleted) {
       // If user has a role but hasn't completed onboarding, redirect to their specific onboarding page
-      navigate(`/onboarding/${user.role}`);
+      navigate(`/onboarding/${user.role}`, { replace: true });
     }
   }, [loading, isAuthenticated, user, navigate]);
 

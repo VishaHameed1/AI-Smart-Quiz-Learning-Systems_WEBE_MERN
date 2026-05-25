@@ -15,7 +15,7 @@ exports.createQuiz = async (req, res) => {
       passingScore,
       difficulty,
       instructions,
-      createdBy: req.user.id,
+      createdBy: req.user._id, // Changed from req.user.id
       totalQuestions: 0,
       isPublished: false
     });
@@ -37,7 +37,14 @@ exports.createQuiz = async (req, res) => {
 exports.getAllQuizzes = async (req, res) => {
   try {
     const { page = 1, limit = 10, type, difficulty, search } = req.query;
-    const query = { isPublished: true };
+    
+    // Default: Students only see published quizzes
+    let query = { isPublished: true };
+
+    // ✅ If teacher is browsing, let them see their own unpublished quizzes too
+    if (req.user && (req.user.role === 'teacher' || req.user.role === 'admin')) {
+      query = { $or: [{ isPublished: true }, { createdBy: req.user._id }] };
+    }
     
     if (type) query.type = type;
     if (difficulty) query.difficulty = difficulty;
@@ -100,7 +107,7 @@ exports.updateQuiz = async (req, res) => {
     }
     
     // Check if user owns the quiz
-    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (quiz.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') { // Changed from req.user.id
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     
@@ -131,7 +138,7 @@ exports.deleteQuiz = async (req, res) => {
     }
     
     // Check if user owns the quiz
-    if (quiz.createdBy.toString() !== req.user.id && req.user.role !== 'admin') {
+    if (quiz.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') { // Changed from req.user.id
       return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
     
@@ -169,7 +176,7 @@ exports.duplicateQuiz = async (req, res) => {
       passingScore: originalQuiz.passingScore,
       difficulty: originalQuiz.difficulty,
       instructions: originalQuiz.instructions,
-      createdBy: req.user.id,
+      createdBy: req.user._id, // Changed from req.user.id
       isPublished: false
     });
     
@@ -189,8 +196,8 @@ exports.duplicateQuiz = async (req, res) => {
         subtopic: q.subtopic,
         tags: q.tags,
         timeLimit: q.timeLimit,
-        points: q.points,
-        createdBy: req.user.id
+        points: q.points, // Changed from req.user.id
+        createdBy: req.user._id
       });
       await newQuestion.save();
     }

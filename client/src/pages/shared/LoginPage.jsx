@@ -1,40 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { loginUser, clearError } from '../../store/slices/authSlice';
 import GlassCard from '../../components/common/GlassCard';
 import CyanButton from '../../components/common/CyanButton';
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+
+  const dispatch = useDispatch();
+  const { loading, error, isAuthenticated, user } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      let target;
+      if (user.role === 'admin') {
+        target = '/dashboard/admin';
+      } else if (user.role === 'teacher') {
+        target = '/dashboard/teacher';
+      } else {
+        target = '/dashboard/student';
+      }
+      
+      navigate(target, { replace: true });
+    }
+    return () => {
+      dispatch(clearError());
+    };
+  }, [isAuthenticated, user, navigate, dispatch]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    
-    try {
-      const response = await login(form.email, form.password);
-      console.log('Login response:', response);
-      console.log('User role:', response?.user?.role);
-      
-      // Role-based navigation
-      if (response?.user?.role === 'teacher') {
-        navigate('/teacher/dashboard');
-      } else if (response?.user?.role === 'admin') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
+    const resultAction = await dispatch(loginUser({ ...form, rememberMe }));
+    if (loginUser.fulfilled.match(resultAction)) {
+      toast.success('Login successful! Welcome back.');
+    } else {
+      toast.error(resultAction.payload || 'Login failed. Please check your credentials.');
     }
   };
 
@@ -57,7 +62,7 @@ const LoginPage = () => {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+          <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center animate-pulse">
             {error}
           </div>
         )}
@@ -91,7 +96,12 @@ const LoginPage = () => {
 
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2">
-              <input type="checkbox" className="rounded border-white/20 bg-white/5 text-cyan-400 focus:ring-cyan-400/40" />
+              <input 
+                type="checkbox" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="rounded border-white/20 bg-white/5 text-cyan-400 focus:ring-cyan-400/40" 
+              />
               <span className="text-sm text-slate-400">Remember me</span>
             </label>
             <Link to="/forgot-password" className="text-sm text-cyan-400 hover:text-cyan-300 transition">

@@ -1,6 +1,6 @@
-﻿import React from 'react';
+﻿﻿import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../context/AuthContext'; // Corrected import path
 import LoadingSpinner from './LoadingSpinner';
 
 const PrivateRoute = ({ children, allowedRoles = [] }) => {
@@ -12,6 +12,7 @@ const PrivateRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (!isAuthenticated) {
+    // If not authenticated, redirect to login. Store current path to redirect back after login.
     return <Navigate to="/login" replace />;
   }
 
@@ -19,14 +20,23 @@ const PrivateRoute = ({ children, allowedRoles = [] }) => {
   const isOnboardingPath = [
     '/role-selection',
     '/onboarding/teacher',
-    '/onboarding/admin'
+    '/onboarding/admin',
+    // Add other onboarding paths if any
   ].includes(location.pathname);
 
   // Redirect to onboarding if not completed
   if (!user?.onboardingCompleted && !isOnboardingPath) {
-    if (!user?.role) return <Navigate to="/role-selection" replace />;
-    if (user.role === 'teacher') return <Navigate to="/onboarding/teacher" replace />;
-    if (user.role === 'admin') return <Navigate to="/onboarding/admin" replace />;
+    // If user has no role, force role selection
+    if (!user?.role) {
+      return <Navigate to="/role-selection" replace />;
+    }
+    // If user has a role but onboarding is not complete, redirect to specific onboarding
+    if (user.role === 'teacher') {
+      return <Navigate to="/onboarding/teacher" replace />;
+    }
+    if (user.role === 'admin') {
+      return <Navigate to="/onboarding/admin" replace />;
+    }
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import GlassCard from '../../components/common/GlassCard';
@@ -155,6 +155,7 @@ const ManageQuestions = () => {
                   >
                     <option value="mcq">Multiple Choice</option>
                     <option value="true-false">True/False</option>
+                    <option value="theoretical">Theoretical (Subjective)</option>
                   </select>
                 </div>
                 <div>
@@ -169,6 +170,16 @@ const ManageQuestions = () => {
                     <option value="hard">Hard</option>
                     <option value="expert">Expert</option>
                   </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-slate-300 text-sm font-medium mb-2">Marks / Points</label>
+                  <input
+                    type="number"
+                    value={newQuestion.points}
+                    onChange={(e) => setNewQuestion({...newQuestion, points: parseInt(e.target.value) || 0})}
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-400/50"
+                    min="1"
+                  />
                 </div>
               </div>
 
@@ -188,13 +199,14 @@ const ManageQuestions = () => {
               )}
 
               <div>
-                <label className="block text-slate-300 text-sm font-medium mb-2">Correct Answer *</label>
-                <input
+                <label className="block text-slate-300 text-sm font-medium mb-2">{newQuestion.type === 'theoretical' ? 'Model Answer (for reference) *' : 'Correct Answer *'}</label>
+                <textarea
                   value={newQuestion.correctAnswer}
                   onChange={(e) => setNewQuestion({...newQuestion, correctAnswer: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white"
-                  placeholder="Enter correct answer"
+                  placeholder={newQuestion.type === 'theoretical' ? "Describe the ideal answer..." : "Enter correct answer"}
                   required
+                  rows={newQuestion.type === 'theoretical' ? "4" : "1"}
                 />
               </div>
 
@@ -224,8 +236,9 @@ const ManageQuestions = () => {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-cyan-400 font-bold">#{idx + 1}</span>
-                    <span className="px-2 py-1 rounded-full text-xs bg-emerald-500/20 text-emerald-400">{q.type}</span>
-                    <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">{q.difficulty}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-white/10 text-slate-400">{q.type}</span>
+                    <span className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">{q.difficulty || 'medium'}</span>
+                    <span className="text-xs font-bold text-cyan-400 ml-auto">{q.points || 0} Marks</span>
                   </div>
                   <p className="text-white font-medium mb-3">{q.text}</p>
                   {q.type === 'mcq' && q.options && q.options.length > 0 && (
@@ -245,6 +258,12 @@ const ManageQuestions = () => {
                       <p className={`text-sm ${q.correctAnswer === 'False' ? 'text-emerald-400' : 'text-slate-400'}`}>
                         False {q.correctAnswer === 'False' && ' ✓'}
                       </p>
+                    </div>
+                  )}
+                  {q.type === 'theoretical' && (
+                    <div className="p-3 rounded-lg bg-white/5 border border-white/5 mt-2">
+                      <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Model Answer</p>
+                      <p className="text-sm text-slate-300 italic">"{q.correctAnswer}"</p>
                     </div>
                   )}
                   {q.explanation && (

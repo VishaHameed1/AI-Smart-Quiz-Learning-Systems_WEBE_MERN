@@ -1,15 +1,14 @@
-const User = require('../models/User.model');
+const User = require('../models/User');
 const Gamification = require('../models/Gamification.model');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
 // Generate JWT - using 'id' for middleware compatibility
-const generateToken = (userId, email, role) => {
+const generateToken = (userId, email, role, expiresIn = '1d') => {
   return jwt.sign(
     { id: userId, email, role },
-    process.env.JWT_SECRET || 'secretkey123',
-    { expiresIn: '7d' }
+    process.env.JWT_SECRET,
+    { expiresIn }
   );
 };
 
@@ -25,10 +24,6 @@ const register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     // Validate role or default to student
     const userRole = ['student', 'teacher', 'admin'].includes(role) ? role : 'student';
 
@@ -36,7 +31,7 @@ const register = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password,
       role: userRole,
       onboardingCompleted: false
     });
@@ -45,7 +40,7 @@ const register = async (req, res) => {
     await Gamification.create({ userId: user._id });
 
     // Generate token
-    const token = generateToken(user._id, user.email, user.role);
+    const token = generateToken(user._id, user.email, user.role, '7d');
 
     res.status(201).json({
       success: true,
@@ -82,13 +77,10 @@ const createUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User already exists' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
     const user = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password,
       role
     });
 
@@ -97,7 +89,7 @@ const createUser = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'User created successfully',
-      user: {
+      data: {
         userId: user._id,
         name: user.name,
         email: user.email,
@@ -112,9 +104,9 @@ const createUser = async (req, res) => {
 
 // @desc    Login user
 // @route   POST /api/auth/login
-const login = async (req, res) => {
+const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     // Find user
     const user = await User.findOne({ email });
@@ -123,7 +115,7 @@ const login = async (req, res) => {
     }
 
     // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
@@ -133,7 +125,8 @@ const login = async (req, res) => {
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id, user.email, user.role);
+    const expiresIn = rememberMe ? '30d' : '1d';
+    const token = generateToken(user._id, user.email, user.role, expiresIn);
 
     res.json({
       success: true,
@@ -148,8 +141,7 @@ const login = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -162,6 +154,7 @@ const getMe = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    console.log(`[AuthMe] User ID: ${user._id}, Name: ${user.name}, Role: ${user.role}`);
     res.json({ 
       success: true, 
       data: {
@@ -169,7 +162,8 @@ const getMe = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        avatar: user.avatar
+        avatar: user.avatar,
+        onboardingCompleted: user.onboardingCompleted
       }
     });
   } catch (error) {
@@ -221,9 +215,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired token' });
     }
 
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = newPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
@@ -280,7 +272,7 @@ const updateProfile = async (req, res) => {
     res.json({ 
       success: true, 
       message: 'Profile updated successfully',
-      user: {
+      data: {
         userId: user._id,        // ✅ userId for frontend
         name: user.name,
         email: user.email,
@@ -309,20 +301,77 @@ const changePassword = async (req, res) => {
     }
 
     // Check current password
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Current password is incorrect' });
     }
 
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    user.password = newPassword;
     await user.save();
 
     res.json({ success: true, message: 'Password changed successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Handle social login (Google/GitHub)
+// @route   POST /api/auth/social-login
+const socialLogin = async (req, res) => {
+  try {
+    const { name, email, avatar, provider, providerId } = req.body;
+
+    // Find user by email or provider ID
+    let user = await User.findOne({ 
+      $or: [{ email }, { [`${provider}Id`]: providerId }] 
+    });
+
+    if (!user) {
+      // Create new user if they don't exist
+      user = await User.create({
+        name,
+        email,
+        avatar,
+        role: 'student',
+        onboardingCompleted: false,
+        [`${provider}Id`]: providerId,
+        isEmailVerified: true // Social providers verify emails
+      });
+      await Gamification.create({ userId: user._id });
+    } else {
+      // Link provider ID if not already linked
+      if (!user[`${provider}Id`]) {
+        user[`${provider}Id`] = providerId;
+        await user.save();
+      }
+    }
+
+    const token = generateToken(user._id, user.email, user.role);
+
+    res.json({
+      success: true,
+      token,
+      data: {
+        userId: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        onboardingCompleted: user.onboardingCompleted
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Logout user
+// @route   POST /api/auth/logout
+const logout = async (req, res) => {
+  try {
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Logout failed' });
   }
 };
 
@@ -336,5 +385,7 @@ module.exports = {
   verifyEmail,
   updateProfile,
   changePassword,
-  createUser
+  createUser,
+  socialLogin,
+  logout
 };

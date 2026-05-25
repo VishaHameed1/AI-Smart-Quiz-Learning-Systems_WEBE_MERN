@@ -1,5 +1,6 @@
-﻿import React, { useState } from 'react';
+﻿﻿import React, { useState, useEffect } from 'react';
 import { generateQuestions } from '../../services/aiService';
+import questionService from '../../services/questionService';
 import api from '../../services/api';
 import GlassCard from '../../components/common/GlassCard';
 import CyanButton from '../../components/common/CyanButton';
@@ -7,14 +8,32 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const AIQuestionGen = () => {
   const [topic, setTopic] = useState('');
+  const [quizId, setQuizId] = useState('');
+  const [userQuizzes, setUserQuizzes] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedQuestions, setSelectedQuestions] = useState({});
   const [difficulty, setDifficulty] = useState('medium');
   const [numQuestions, setNumQuestions] = useState(5);
+  const [questionType, setQuestionType] = useState('mixed');
 
   const difficultyOptions = ['easy', 'medium', 'hard', 'expert'];
+  const typeOptions = ['mcq', 'theoretical', 'mixed'];
+
+  useEffect(() => {
+    const fetchUserQuizzes = async () => {
+      try {
+        const response = await api.get('/teacher/quizzes'); 
+        if (response.data && response.data.success) {
+          setUserQuizzes(response.data.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to load quizzes for dropdown:', err.message);
+      }
+    };
+    fetchUserQuizzes();
+  }, []);
 
   const fetchQuestions = async () => {
     if (!topic.trim()) {
@@ -29,12 +48,28 @@ const AIQuestionGen = () => {
         topic,
         numberOfQuestions: numQuestions,
         difficulty: difficulty,
+        questionType: questionType
       });
       setQuestions(generated || []);
     } catch (err) {
       alert('Failed to generate questions: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const areAllSelected = questions.length > 0 && 
+    questions.every((_, idx) => selectedQuestions[idx]);
+
+  const toggleSelectAll = () => {
+    if (areAllSelected) {
+      setSelectedQuestions({});
+    } else {
+      const newState = {};
+      questions.forEach((_, idx) => {
+        newState[idx] = true;
+      });
+      setSelectedQuestions(newState);
     }
   };
 
@@ -54,20 +89,28 @@ const AIQuestionGen = () => {
       return;
     }
 
+    if (!quizId.trim()) {
+      alert('Please enter a Quiz ID to save these questions');
+      return;
+    }
+
     setSaving(true);
     try {
-      // Save each selected question to question bank
-      for (const question of selected) {
-        await api.post('/questions/create', {
-          text: question.question,
-          options: question.options,
-          correctAnswer: question.correctAnswer,
-          explanation: question.explanation,
-          difficulty: question.difficulty || difficulty,
+      const payload = {
+        quizId: quizId.trim(),
+        questions: selected.map(q => ({
+          text: q.text || q.question, // Alignment with Question model and support AI output
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          difficulty: q.difficulty || difficulty,
           topic: topic,
-          type: 'mcq'
-        });
-      }
+          type: q.type,
+          points: q.points
+        }))
+      };
+
+      await questionService.bulkAddQuestions(payload);
       alert(`✅ ${selected.length} questions saved successfully!`);
       setQuestions([]);
       setSelectedQuestions({});
@@ -89,7 +132,7 @@ const AIQuestionGen = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">🤖 AI Question Generator</h1>
-          <p className="text-slate-400 mt-1">Powered by Google Gemini AI</p>
+          <p className="text-slate-400 mt-1">Powered by Llama 3.3 via Groq</p>
         </div>
 
         {/* Input Section */}
@@ -114,6 +157,32 @@ const AIQuestionGen = () => {
               >
                 {difficultyOptions.map(opt => (
                   <option key={opt} value={opt} className="bg-slate-800">{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-slate-300 text-sm font-medium mb-2">Question Type</label>
+              <select
+                value={questionType}
+                onChange={(e) => setQuestionType(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-400/50"
+              >
+                {typeOptions.map(opt => (
+                  <option key={opt} value={opt} className="bg-slate-800">{opt.toUpperCase()}</option>
+                ))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-slate-300 text-sm font-medium mb-2">Select Target Quiz *</label>
+              <select
+                value={quizId}
+                onChange={(e) => setQuizId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-[#0f172a] border border-white/10 text-white focus:outline-none focus:border-cyan-400/50"
+                required
+              >
+                <option value="">-- Choose a quiz to add questions to --</option>
+                {userQuizzes.map(q => (
+                  <option key={q._id} value={q._id} className="bg-slate-800">{q.title}</option>
                 ))}
               </select>
             </div>
@@ -144,7 +213,19 @@ const AIQuestionGen = () => {
         {questions.length > 0 && !loading && (
           <GlassCard className="p-6" glowLine>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">Generated Questions</h2>
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-bold text-white">Generated Questions</h2>
+                <button 
+                  onClick={toggleSelectAll}
+                  className="text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-2 group"
+                >
+                  <div className={`w-5 h-5 rounded border border-cyan-500/50 flex items-center justify-center transition-all ${areAllSelected ? 'bg-cyan-500' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                    {areAllSelected && <span className="text-slate-950 text-[10px] font-black">✓</span>}
+                  </div>
+                  {areAllSelected ? 'Deselect All' : 'Select All'}
+                </button>
+              </div>
+              
               <CyanButton onClick={saveSelectedQuestions} disabled={saving} size="sm" glow>
                 {saving ? 'Saving...' : `Save Selected (${Object.values(selectedQuestions).filter(Boolean).length})`}
               </CyanButton>
@@ -166,7 +247,13 @@ const AIQuestionGen = () => {
                       {selectedQuestions[idx] && <span className="text-cyan-400">✓</span>}
                     </div>
                     <div className="flex-1">
-                      <p className="text-white font-medium">{q.question}</p>
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="text-white font-medium">{q.text || q.question}</p>
+                        {/* <div className="flex gap-2">
+                          <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded text-slate-400 uppercase">{q.type}</span>
+                          <span className="text-[10px] bg-cyan-500/20 px-2 py-0.5 rounded text-cyan-400 font-bold">{q.points} Marks</span>
+                        </div> */}
+                      </div>
                       {q.options && (
                         <div className="mt-2 space-y-1">
                           {q.options.map((opt, i) => (

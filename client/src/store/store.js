@@ -1,15 +1,10 @@
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './authSlice';
-import userReducer from './userSlice';
-import progressReducer from './progressSlice';
-import uiReducer from './uiSlice';
+import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    user: userReducer,
-    progress: progressReducer,
-    ui: uiReducer,
+    // Quizzes or other slices can be added here
   },
 });
 

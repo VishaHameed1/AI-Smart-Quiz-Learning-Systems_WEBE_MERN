@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User.model');
+const User = require('../models/User');
 
 const auth = async (req, res, next) => {
   try {
@@ -30,7 +30,7 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Find user in DB
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id).select('-password');
     
     if (!user) {
       return res.status(401).json({ success: false, message: 'User not found' });
@@ -50,9 +50,9 @@ const optionalAuth = async (req, res, next) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey123');
-      
-      // FIX: Apply same flexible ID check here
-      const targetId = decoded.id || decoded.userId;
+
+      // Use decoded.id as it's consistently set in generateToken
+      const targetId = decoded.id;
       const user = await User.findById(targetId).select('-password');
       
       if (user) {
@@ -81,4 +81,11 @@ module.exports.isAdmin = (req, res, next) => {
   if (!req.user) return res.status(401).json({ success: false, message: 'Not authenticated' });
   if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin access required' });
   next();
+};
+
+module.exports = {
+  auth,
+  optionalAuth,
+  roleCheck,
+  isAdmin: module.exports.isAdmin
 };

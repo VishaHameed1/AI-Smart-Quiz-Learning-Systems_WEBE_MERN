@@ -12,16 +12,11 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [usersRes, quizzesRes, attemptsRes] = await Promise.all([
-          api.get('/admin/stats/users').catch(() => ({ data: { data: { total: 0 } } })),
-          api.get('/admin/stats/quizzes').catch(() => ({ data: { data: { total: 0 } } })),
-          api.get('/admin/stats/attempts').catch(() => ({ data: { data: { total: 0 } } }))
-        ]);
-        setStats({
-          totalUsers: usersRes.data.data?.total || 0,
-          totalQuizzes: quizzesRes.data.data?.total || 0,
-          totalAttempts: attemptsRes.data.data?.total || 0
-        });
+        // Fetching from the real centralized admin dashboard endpoint
+        const res = await api.get('/dashboard/admin');
+        if (res.data.success) {
+          setStats(res.data.data);
+        }
       } catch (err) {
         console.error('Failed to fetch admin stats:', err);
       } finally {

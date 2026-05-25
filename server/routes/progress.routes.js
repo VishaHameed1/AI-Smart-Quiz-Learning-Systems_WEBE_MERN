@@ -1,23 +1,19 @@
 const express = require('express');
-const { auth } = require('../middleware/auth');
-const {
-  getUserProgress,
-  updateTopicProgress,
-  getTopicMastery
-} = require('../controllers/progress.controller');
-
 const router = express.Router();
+const { auth, roleCheck } = require('../middleware/auth');
+const { getOverview, getHeatmap, getSkillGap } = require('../controllers/progressController');
 
 // All routes require authentication
 router.use(auth);
+router.use(roleCheck(['student', 'teacher', 'admin']));
 
-// Get user's complete progress
-router.get('/', getUserProgress);
+// @route   GET /api/progress/overview
+router.get('/overview', getOverview);
 
-// Get topic mastery
-router.get('/mastery', getTopicMastery);
+// @route   GET /api/progress/heatmap
+router.get('/heatmap', getHeatmap);
 
-// Update progress for a specific topic
-router.post('/topic', updateTopicProgress);
+// @route   GET /api/progress/skill-gap
+router.get('/skill-gap', getSkillGap);
 
 module.exports = router;

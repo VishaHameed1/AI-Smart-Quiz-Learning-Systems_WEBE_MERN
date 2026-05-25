@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -6,6 +6,7 @@ const roleNavItems = {
   student: [
     { label: 'Overview', to: '/dashboard/student' },
     { label: 'Quizzes', to: '/quizzes' },
+    { label: 'Teachers', to: '/teachers' }, // Added Teachers tab
     { label: 'Progress', to: '/progress' },
     { label: 'Review', to: '/review' },
     { label: 'Leaderboard', to: '/leaderboard' },
@@ -15,12 +16,15 @@ const roleNavItems = {
     { label: 'My Students', to: '/teacher/students' },
     { label: 'Create Quiz', to: '/teacher/create-quiz' },
     { label: 'Reports', to: '/teacher/reports' },
+    { label: 'Enrollment Requests', to: '/teacher/enrollment-requests' }, // New
+    { label: 'Content Folders', to: '/teacher/folders' }, // New
     { label: 'Question Bank', to: '/teacher/question-bank' },
   ],
   admin: [
     { label: 'Admin Dashboard', to: '/dashboard/admin' },
     { label: 'User Management', to: '/admin/users' },
     { label: 'System Analytics', to: '/admin/analytics' },
+    { label: 'Folder Management', to: '/admin/folders' }, // New Admin Folder Management
     { label: 'Create User', to: '/admin/create-user' },
   ]
 };

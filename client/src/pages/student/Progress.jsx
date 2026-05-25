@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import GlassCard from '../../components/common/GlassCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import CyanButton from '../../components/common/CyanButton';
@@ -40,8 +40,8 @@ const Progress = () => {
     : [];
 
   const recentPerformance = overview?.recentPerformance || [];
-  const totalXP = overview?.totalXP || 0;
-  const level = overview?.level || 1;
+  const totalXP = overview?.totalXP || 0; // This should come from gamification profile
+  const level = overview?.level || 1; // This should come from gamification profile
 
   return (
     <div className="min-h-screen bg-[#030712] p-6">
@@ -87,7 +87,7 @@ const Progress = () => {
             {radarData.length > 0 ? (
               <ResponsiveContainer width="100%" height={320}>
                 <RadarChart data={radarData} outerRadius={100}>
-                  <PolarGrid stroke="#334155" />
+                  <PolarGrid stroke="#334155" radialLines={false} />
                   <PolarAngleAxis dataKey="topic" tick={{ fill: '#94a3b8', fontSize: 11 }} />
                   <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#64748b' }} />
                   <Radar name="Mastery" dataKey="mastery" stroke="#00f2ff" fill="#00f2ff" fillOpacity={0.3} />

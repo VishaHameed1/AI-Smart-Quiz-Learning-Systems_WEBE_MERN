@@ -1,27 +1,27 @@
- const mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
-const gamificationSchema = new mongoose.Schema({
+const GamificationSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true
+    unique: true,
   },
   level: {
     type: Number,
-    default: 1
+    default: 1,
   },
   totalXp: {
     type: Number,
-    default: 0
+    default: 0,
   },
   xpToNextLevel: {
     type: Number,
-    default: 100
+    default: 100,
   },
   currentLevelXp: {
     type: Number,
-    default: 0
+    default: 0,
   },
   xpHistory: [{
     amount: Number,
@@ -31,11 +31,11 @@ const gamificationSchema = new mongoose.Schema({
   }],
   currentStreak: {
     type: Number,
-    default: 0
+    default: 0,
   },
   longestStreak: {
     type: Number,
-    default: 0
+    default: 0,
   },
   lastActivityDate: Date,
   badges: [{
@@ -43,21 +43,21 @@ const gamificationSchema = new mongoose.Schema({
     name: String,
     description: String,
     icon: String,
-    earnedAt: { type: Date, default: Date.now },
+    earnedAt: { type: Date, default: Date.now }, // Corrected default value
     rarity: {
       type: String,
       enum: ['common', 'rare', 'epic', 'legendary'],
-      default: 'common'
+      default: 'common',
     }
   }],
   dailyGoal: {
     target: { type: Number, default: 30 },
     current: { type: Number, default: 0 },
     lastReset: Date,
-    streak: { type: Number, default: 0 }
+    streak: { type: Number, default: 0 },
   }
 }, {
   timestamps: true
 });
 
-module.exports = mongoose.model('Gamification', gamificationSchema);
+module.exports = mongoose.model('Gamification', GamificationSchema);

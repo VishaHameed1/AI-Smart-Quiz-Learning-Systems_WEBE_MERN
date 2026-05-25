@@ -15,6 +15,20 @@ const getDueReviews = async (req, res) => {
   }
 };
 
+// @desc    Get count of due reviews
+// @route   GET /api/review/due/count
+const getDueCount = async (req, res) => {
+  try {
+    const count = await ReviewQueue.countDocuments({
+      userId: req.user._id,
+      nextReviewDate: { $lte: new Date() }
+    });
+    res.json({ success: true, data: { count } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // @desc    Add question to review queue
 // @route   POST /api/review/add
 const addToReviewQueue = async (req, res) => {
@@ -69,4 +83,4 @@ const updateReview = async (req, res) => {
   }
 };
 
-module.exports = { getDueReviews, addToReviewQueue, updateReview }; 
+module.exports = { getDueReviews, getDueCount, addToReviewQueue, updateReview }; 

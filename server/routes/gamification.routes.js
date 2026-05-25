@@ -1,27 +1,15 @@
 const express = require('express');
-const { auth } = require('../middleware/auth');
-const {
-  getUserStats,
-  addXP,
-  addBadge,
-  updateStreak
-} = require('../controllers/gamification.controller');
-
 const router = express.Router();
+const { auth } = require('../middleware/auth');
+const { getProfile, getLeaderboard } = require('../controllers/gamificationController');
 
 // All routes require authentication
 router.use(auth);
 
-// Get user stats
-router.get('/stats', getUserStats);
+// @route   GET /api/gamification/profile
+router.get('/profile', getProfile);
 
-// Add XP
-router.post('/add-xp', addXP);
-
-// Add badge
-router.post('/add-badge', addBadge);
-
-// Update streak
-router.post('/update-streak', updateStreak);
+// @route   GET /api/gamification/leaderboard
+router.get('/leaderboard', getLeaderboard);
 
 module.exports = router;

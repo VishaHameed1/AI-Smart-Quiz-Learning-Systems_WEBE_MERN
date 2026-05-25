@@ -1,8 +1,9 @@
-﻿import React, { useState } from 'react';
+﻿﻿import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import GlassCard from '../../components/common/GlassCard';
 import CyanButton from '../../components/common/CyanButton';
+import toast from 'react-hot-toast';
 
 const CreateQuiz = () => {
   const navigate = useNavigate();
@@ -14,8 +15,24 @@ const CreateQuiz = () => {
     difficulty: 'medium',
     type: 'practice',
     instructions: '',
+    requiresEnrollment: false,
   });
+  const [folders, setFolders] = useState([]);
+  const [newFolderName, setNewFolderName] = useState(''); // New state for new folder name
+  const [selectedFolder, setSelectedFolder] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        const res = await api.get('/teacher/folders');
+        setFolders(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to load folders");
+      }
+    };
+    fetchFolders();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,6 +40,31 @@ const CreateQuiz = () => {
     try {
       const response = await api.post('/quizzes/create', quiz);
       const quizId = response.data.data._id;
+
+      let targetFolderId = selectedFolder;
+
+      // Agar naya folder name diya gaya hai, toh usko prioritize karo
+      if (newFolderName.trim()) {
+        // Check if folder with this name already exists for the teacher
+        const existingFolder = folders.find(f => f.name.toLowerCase() === newFolderName.trim().toLowerCase());
+        
+        if (existingFolder) {
+          targetFolderId = existingFolder._id;
+        } else {
+          // Agar nahi hai toh naya folder banao
+          const newFolderRes = await api.post('/teacher/folders', { name: newFolderName.trim() });
+          targetFolderId = newFolderRes.data.data._id;
+        }
+      }
+
+      // Agar koi folder select ya create hua hai, toh quiz ko usmein add karo
+      if (targetFolderId) {
+        await api.put(`/teacher/folders/${targetFolderId}`, {
+          addQuizId: quizId // Backend controller will handle adding this quiz ID
+        });
+        toast.success(`Quiz added to folder: ${newFolderName || folders.find(f => f._id === targetFolderId)?.name}`);
+      }
+
       navigate(`/teacher/quiz/${quizId}/questions`);
     } catch (err) {
       console.error(err);
@@ -60,6 +102,40 @@ const CreateQuiz = () => {
 
         <GlassCard className="p-8" glowLine>
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Folder Classification */}
+            <div>
+              <label className="block text-slate-300 text-sm font-medium mb-2">Classify into Folder (Optional)</label>
+              <div className="flex flex-col md:flex-row gap-3">
+                <select
+                  value={selectedFolder}
+                  onChange={(e) => {
+                    setSelectedFolder(e.target.value);
+                    setNewFolderName(''); // Clear new folder name if existing is selected
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-400/50"
+                >
+                  <option value="" className="bg-slate-900">-- Select Existing Folder --</option>
+                  {folders.map(f => (
+                    <option key={f._id} value={f._id} className="bg-slate-900">{f.name}</option>
+                  ))}
+                </select>
+                <span className="text-slate-500 flex items-center justify-center">OR</span>
+                <input
+                  type="text"
+                  placeholder="Create New Folder"
+                  value={newFolderName}
+                  onChange={(e) => {
+                    setNewFolderName(e.target.value);
+                    setSelectedFolder(''); // Clear selected folder if new name is typed
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400/50"
+                />
+              </div>
+              <p className="text-[10px] text-slate-500 mt-2 italic">
+                Select an existing folder or type a new name to create one. If a new name matches an existing folder, the quiz will be added to that folder.
+              </p>
+            </div>
+
             {/* Quiz Title */}
             <div>
               <label className="block text-slate-300 text-sm font-medium mb-2">Quiz Title *</label>
@@ -151,6 +227,20 @@ const CreateQuiz = () => {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Enrollment Toggle */}
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10">
+              <input
+                type="checkbox"
+                id="requiresEnrollment"
+                checked={quiz.requiresEnrollment}
+                onChange={(e) => setQuiz({...quiz, requiresEnrollment: e.target.checked})}
+                className="w-5 h-5 accent-emerald-500 cursor-pointer"
+              />
+              <label htmlFor="requiresEnrollment" className="text-sm font-medium text-slate-300 cursor-pointer">
+                Requires Enrollment (Students must request access)
+              </label>
             </div>
 
             {/* Instructions */}

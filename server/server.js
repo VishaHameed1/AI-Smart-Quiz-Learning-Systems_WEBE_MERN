@@ -1,15 +1,27 @@
+require('dotenv').config();
 const connectDB = require('./config/database');
 const app = require('./app');
+const cron = require('node-cron');
+const cleanupController = require('./controllers/cleanupController');
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
+const JWT_SECRET = process.env.JWT_SECRET;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 const startServer = async () => {
-    if (!MONGODB_URI) {
-        console.error('❌ Error: MONGODB_URI is not defined in .env file');
+    // Check for critical environment variables
+    const requiredEnv = { MONGODB_URI, JWT_SECRET, GROQ_API_KEY };
+    const missing = Object.keys(requiredEnv).filter(key => !requiredEnv[key]);
+
+    if (missing.length > 0) {
+        console.error(`❌ Error: Missing required environment variables: ${missing.join(', ')}`);
         if (process.env.NODE_ENV !== 'test') {
             process.exit(1);
         }
+    }
+
+    if (process.env.NODE_ENV === 'test' && !MONGODB_URI) {
         console.warn('⚠️ Running in test mode without a MongoDB connection.');
     }
 
@@ -27,17 +39,7 @@ const startServer = async () => {
         console.log(`   GET  /api/quizzes - Get all quizzes`);
         console.log(`   GET  /api/users/profile - Get user profile`);
         console.log(`   GET  /api/progress - Get learning progress`);
-
-        // Schedule automatic cleanup every Sunday at 2 AM
-        cron.schedule('0 2 * * 0', async () => {
-            console.log('🧹 Running scheduled database cleanup...');
-            try {
-                const result = await cleanupService.runFullCleanup();
-                console.log('✅ Cleanup completed:', result.message);
-            } catch (error) {
-                console.error('❌ Scheduled cleanup failed:', error.message);
-            }
-        });
+        console.log(`   GET  /api/review/due/count - Get due reviews count`);
 
         console.log('\n⏰ Scheduled tasks:');
         console.log('   Database cleanup: Every Sunday at 2:00 AM');
@@ -45,28 +47,17 @@ const startServer = async () => {
 };
 
 // Schedule weekly cleanup on Sundays at 2:00 AM (with error handling)
-try {
-    const cron = require('node-cron');
-    // Check if cleanupController exists before using it
-    let cleanupController;
-    try {
-        cleanupController = require('./controllers/cleanupController');
-    } catch (err) {
-        console.log('⚠️ Cleanup controller not available, skipping scheduled cleanup');
-    }
-    
-    if (cleanupController && cron) {
-        cron.schedule('0 2 * * 0', async () => {
-            console.log('Running scheduled cleanup...');
-            try {
-                await cleanupController.fullCleanup({ body: {} }, { json: () => {} });
-            } catch (err) {
-                console.error('Scheduled cleanup failed:', err);
-            }
-        });
-    }
-} catch (err) {
-    console.log('ℹ️ Cron scheduling not available (node-cron not installed)');
+if (cron && cleanupController) {
+    cron.schedule('0 2 * * 0', async () => {
+        console.log('Running scheduled cleanup...');
+        try {
+            // Call runFullCleanup with mock req/res objects
+            const mockRes = { json: (data) => console.log('Cleanup Result:', data) };
+            await cleanupController.fullCleanup({ body: {} }, mockRes);
+        } catch (err) {
+            console.error('Scheduled cleanup failed:', err);
+        }
+    });
 }
 
 if (process.env.NODE_ENV !== 'test') {

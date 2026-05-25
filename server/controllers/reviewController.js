@@ -1,89 +1,81 @@
-const Review = require('../models/Review');
-const User = require('../models/User');
+const ReviewQueue = require('../models/ReviewQueue.model');
+const Question = require('../models/Question');
 
-// SM-2 algorithm implementation
-const scheduleSM2 = (review, quality) => {
-  // quality: 0-5
-  if (quality < 0 || quality > 5) quality = Math.max(0, Math.min(5, quality));
-
-  if (quality < 3) {
-    review.repetitions = 0;
-    review.interval = 1;
-  } else {
-    review.repetitions += 1;
-    if (review.repetitions === 1) review.interval = 1;
-    else if (review.repetitions === 2) review.interval = 6;
-    else review.interval = Math.round(review.interval * review.easeFactor);
-    // update ease factor
-    review.easeFactor = Math.max(1.3, review.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)));
-  }
-
-  const next = new Date();
-  next.setDate(next.getDate() + Math.max(1, Math.round(review.interval)));
-  review.nextReview = next;
-  review.history.push({ quality, date: new Date() });
-  return review;
-};
-
-exports.getDueReviews = async (req, res) => {
+// @desc    Get all due review items for current user
+// @route   GET /api/review/due
+const getDueItems = async (req, res) => {
   try {
-    const now = new Date();
-    const reviews = await Review.find({ userId: req.user._id, nextReview: { $lte: now } }).limit(50).populate('questionId');
-    res.json({ success: true, data: reviews });
+    const dueItems = await ReviewQueue.find({
+      userId: req.user._id,
+      nextReviewDate: { $lte: new Date() }
+    }).populate('questionId');
+    res.json({ success: true, data: dueItems });
   } catch (error) {
-    console.error('GetDueReviews Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching due items:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.getDueCount = async (req, res) => {
+// @desc    Get count of due review items for current user
+// @route   GET /api/review/due/count
+const getDueCount = async (req, res) => {
   try {
-    const now = new Date();
-    const count = await Review.countDocuments({ userId: req.user._id, nextReview: { $lte: now } });
+    const count = await ReviewQueue.countDocuments({
+      userId: req.user._id,
+      nextReviewDate: { $lte: new Date() }
+    });
     res.json({ success: true, data: { count } });
   } catch (error) {
-    console.error('GetDueCount Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching due count:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.getStats = async (req, res) => {
+// @desc    Get review statistics for current user
+// @route   GET /api/review/stats
+const getStats = async (req, res) => {
   try {
-    const total = await Review.countDocuments({ userId: req.user._id });
-    const now = new Date();
-    const due = await Review.countDocuments({ userId: req.user._id, nextReview: { $lte: now } });
-    const mastered = await Review.countDocuments({ userId: req.user._id, repetitions: { $gte: 5 } });
-    res.json({ success: true, data: { total, due, mastered } });
+    const totalItems = await ReviewQueue.countDocuments({ userId: req.user._id });
+    const dueItems = await ReviewQueue.countDocuments({ userId: req.user._id, nextReviewDate: { $lte: new Date() } });
+    const masteredItems = await ReviewQueue.countDocuments({ userId: req.user._id, easeFactor: { $gte: 2.5 } }); // Example mastery threshold
+
+    res.json({ success: true, data: { totalItems, due: dueItems, masteredItems, reviewStreak: 0 } }); // reviewStreak needs more complex logic
   } catch (error) {
-    console.error('GetStats Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching review stats:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.submitReview = async (req, res) => {
+// @desc    Submit review quality for a specific item
+// @route   POST /api/review/:reviewId/submit
+const submitReview = async (req, res) => {
   try {
     const { reviewId } = req.params;
-    const { quality } = req.body; // 0-5
+    const { quality } = req.body; // 0-5, 5=perfect recall, 0=complete blackout
 
-    const review = await Review.findById(reviewId);
-    if (!review) return res.status(404).json({ success: false, message: 'Review not found' });
-    if (review.userId.toString() !== req.user._id.toString()) return res.status(403).json({ success: false, message: 'Unauthorized' });
+    const reviewItem = await ReviewQueue.findOne({ _id: reviewId, userId: req.user._id });
+    if (!reviewItem) {
+      return res.status(404).json({ success: false, message: 'Review item not found or not authorized' });
+    }
 
-    scheduleSM2(review, Number(quality));
-    await review.save();
+    // Implement SM-2 algorithm logic here
+    // This is a simplified example, a full SM-2 implementation is more complex
+    if (quality >= 3) {
+      reviewItem.repetitions++; // Increment repetitions
+      reviewItem.easeFactor = Math.max(1.3, reviewItem.easeFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))); // Update ease factor
+      reviewItem.interval = reviewItem.repetitions === 1 ? 1 : (reviewItem.repetitions === 2 ? 6 : Math.round(reviewItem.interval * reviewItem.easeFactor)); // Calculate new interval
+    } else {
+      reviewItem.repetitions = 0; // Reset repetitions
+      reviewItem.interval = 1; // Reset interval
+    }
+    reviewItem.nextReviewDate = new Date(Date.now() + reviewItem.interval * 24 * 60 * 60 * 1000);
+    await reviewItem.save();
 
-    // Award XP based on quality
-    const xpEarned = Math.max(1, Math.round((Number(quality) / 5) * 10));
-    const user = await User.findById(req.user._id);
-    user.xp = (user.xp || 0) + xpEarned;
-    // level up simple logic
-    const nextLevelXp = user.level * 100;
-    if (user.xp >= nextLevelXp) user.level = Math.min(100, user.level + 1);
-    await user.save();
-
-    res.json({ success: true, message: 'Review submitted', data: { review, xpEarned } });
+    res.json({ success: true, message: 'Review submitted successfully', data: reviewItem });
   } catch (error) {
-    console.error('SubmitReview Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error submitting review:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
+module.exports = { getDueCount, getStats, submitReview, getDueItems };

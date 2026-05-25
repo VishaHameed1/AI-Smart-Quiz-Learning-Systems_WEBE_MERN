@@ -1,33 +1,62 @@
-const { model, fastModel } = require('../config/gemini');
+const Groq = require('groq-sdk');
 const Question = require('../models/Question');
 const AIQuestionCache = require('../models/AIQuestionCache');
 
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
 // Helper function to extract JSON safely from Gemini's response
 const extractJSON = (text) => {
+    if (!text) throw new Error('AI returned an empty response');
+    
     try {
-        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        // Strip markdown code blocks and handle potential text outside the JSON
+        const cleanedText = text.replace(/```json\n?|```/g, '').trim();
+        
+        // Find the first '[' and last ']' to isolate the JSON array
+        const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+            try {
+                return JSON.parse(jsonMatch[0]);
+            } catch (innerError) {
+                // Fallback to trying to parse the whole cleaned text
+                return JSON.parse(cleanedText);
+            }
         }
-        return JSON.parse(text);
+        return JSON.parse(cleanedText);
     } catch (e) {
-        console.error("JSON Parsing Error. Raw Text:", text);
-        throw new Error('Could not parse JSON response from AI');
+        console.error("AI JSON Parsing Error:", e.message, "\nRaw AI Output:", text);
+        throw new Error('The AI response was not in a valid format. Please try again.');
     }
 };
 
-// Helper function to call Gemini API with correct format
-const callGemini = async (modelInstance, prompt) => {
-    const result = await modelInstance.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }]
-    });
-    const response = await result.response;
-    return response.text();
+// Helper function to call Groq API with Llama 3.3
+const callGroq = async (prompt, isJson = false) => {
+    try {
+        const completion = await groq.chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
+            model: "llama-3.3-70b-versatile",
+            response_format: isJson ? { type: "json_object" } : undefined,
+        });
+        
+        const content = completion.choices[0]?.message?.content;
+        if (!content) {
+            throw new Error('Groq returned an empty response');
+        }
+
+        return content;
+    } catch (e) {
+        console.error("Groq API Error:", e.message);
+        throw e;
+    }
 };
 
 // Generate questions from topic using Gemini
 exports.generateQuestions = async (req, res) => {
     try {
+        if (!process.env.GROQ_API_KEY) {
+            return res.status(500).json({ success: false, message: 'AI Service is not configured (Missing Groq API Key)' });
+        }
+
         const { topic, numberOfQuestions = 5, difficulty = 'medium', questionType = 'mcq' } = req.body;
 
         if (!topic || typeof topic !== 'string' || topic.trim().length === 0) {
@@ -54,40 +83,50 @@ exports.generateQuestions = async (req, res) => {
             });
         }
         
-        const prompt = `Generate ${numberOfQuestions} ${difficulty} difficulty ${questionType} questions about "${topic}".
+        const prompt = `Generate ${numberOfQuestions} ${difficulty} difficulty ${questionType === 'mixed' ? 'MCQ and Theoretical' : questionType} questions about "${topic}".
         
         For each question, provide:
-        1. Question text
-        2. 4 options (for mcq)
-        3. The correct answer (exactly as written in options)
+        1. The text of the question
+        2. Options (ONLY for mcq type, otherwise an empty array [])
+        3. The correct answer (for mcq: exactly as in options; for theoretical: a high-quality model answer)
         4. A detailed explanation of why the answer is correct
         5. The difficulty level
         6. The topic name
+        7. Points (marks) based on complexity (MCQs: 1-4 marks, Theoretical: 5-15 marks)
+        8. Type: exactly "mcq" or "theoretical"
         
         Return ONLY valid JSON array. No other text or markdown tags. Format:
         [
           {
-            "question": "question text here",
-            "options": ["option1", "option2", "option3", "option4"],
+            "text": "question text here",
+            "options": ["option1", "option2", "option3", "option4"], 
             "correctAnswer": "option1",
             "explanation": "detailed explanation here",
             "difficulty": "${difficulty}",
-            "topic": "${topic}"
+            "topic": "${topic}",
+            "points": 5,
+            "type": "mcq"
           }
         ]`;
         
-        const text = await callGemini(model, prompt);
+        const text = await callGroq(prompt, true);
         
         const generatedQuestions = extractJSON(text);
+
+        if (!Array.isArray(generatedQuestions)) {
+            throw new Error('AI did not return an array of questions');
+        }
         
         const validatedQuestions = generatedQuestions.map(q => ({
-            question: q.question,
+            text: q.text || q.question,
             options: q.options || [],
             correctAnswer: q.correctAnswer,
             explanation: q.explanation || 'No explanation provided',
             difficulty: q.difficulty || difficulty,
             topic: q.topic || topic,
-            aiGenerated: true
+            aiGenerated: true,
+            points: q.points || (q.type === 'theoretical' ? 10 : 2),
+            type: q.type || (questionType === 'mixed' ? 'mcq' : questionType)
         }));
         
         if (cacheEnabled) {
@@ -102,11 +141,11 @@ exports.generateQuestions = async (req, res) => {
             success: true,
             message: `${validatedQuestions.length} questions generated successfully`,
             data: validatedQuestions,
-            source: 'gemini-ai'
+            source: 'groq-llama-3.3'
         });
         
     } catch (error) {
-        console.error('Gemini AI Error:', error);
+        console.error('Groq AI Error:', error);
         res.status(500).json({ 
             success: false, 
             message: 'Failed to generate questions',
@@ -135,7 +174,7 @@ exports.generateQuestionsFromText = async (req, res) => {
         Return ONLY valid JSON array. Format:
         [
           {
-            "question": "...",
+            "text": "...",
             "options": ["...", "...", "...", "..."],
             "correctAnswer": "...",
             "explanation": "...",
@@ -143,7 +182,7 @@ exports.generateQuestionsFromText = async (req, res) => {
           }
         ]`;
         
-        const text_response = await callGemini(model, prompt);
+        const text_response = await callGroq(prompt, true);
         
         const generatedQuestions = extractJSON(text_response);
         
@@ -157,11 +196,11 @@ exports.generateQuestionsFromText = async (req, res) => {
             success: true,
             message: `${validatedQuestions.length} questions generated from text`,
             data: validatedQuestions,
-            source: 'gemini-ai'
+            source: 'groq-llama-3.3'
         });
         
     } catch (error) {
-        console.error('GenerateFromText Error:', error);
+        console.error('Groq GenerateFromText Error:', error);
         res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
@@ -177,16 +216,16 @@ exports.generateQuestionsFromUrl = async (req, res) => {
         
         const prompt = `Visit this URL and analyze the content: ${url}
         Generate ${numberOfQuestions} ${difficulty} difficulty multiple choice questions.
-        Return ONLY a JSON array. Format: [{"question":"...","options":["...","...","...","..."],"correctAnswer":"...","explanation":"...","topic":"..."}]`;
+        Return ONLY a JSON array. Format: [{"text":"...","options":["...","...","...","..."],"correctAnswer":"...","explanation":"...","topic":"..."}]`;
         
-        const text = await callGemini(model, prompt);
+        const text = await callGroq(prompt, true);
         
         const generatedQuestions = extractJSON(text);
         
         res.json({
             success: true,
             data: generatedQuestions,
-            source: 'gemini-ai'
+            source: 'groq-llama-3.3'
         });
         
     } catch (error) {
@@ -221,7 +260,7 @@ exports.improveQuestion = async (req, res) => {
                 improvementPrompt = `Improve this question: "${question.text}"\nReturn ONLY the improved text.`;
         }
         
-        const improvedText = await callGemini(model, improvementPrompt);
+        const improvedText = await callGroq(improvementPrompt);
         
         res.json({
             success: true,
@@ -249,7 +288,7 @@ exports.explainAnswer = async (req, res) => {
         Correct Answer: ${correctAnswer}
         Provide: 1. Why correct is right. 2. Why user was wrong (if applicable). 3. A learning tip.`;
         
-        const explanation = await callGemini(fastModel, prompt);
+        const explanation = await callGroq(prompt);
         
         res.json({
             success: true,
@@ -270,7 +309,7 @@ exports.generateQuizSummary = async (req, res) => {
         const prompt = `Analyze this quiz data for topic "${topic}": ${JSON.stringify(performanceData)}
         Provide a feedback summary (max 100 words) with Strengths, Areas for Improvement, and Study Tips.`;
         
-        const summary = await callGemini(fastModel, prompt);
+        const summary = await callGroq(prompt);
         
         res.json({
             success: true,
@@ -292,7 +331,7 @@ exports.generateFlashcards = async (req, res) => {
         Return as JSON array: [{"front": "Question/Term", "back": "Answer/Definition"}] 
         ONLY return valid JSON.`;
         
-        const text = await callGemini(model, prompt);
+        const text = await callGroq(prompt, true);
         
         const flashcards = extractJSON(text);
         

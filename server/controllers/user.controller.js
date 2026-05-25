@@ -1,4 +1,4 @@
-const User = require('../models/User.model');
+const User = require('../models/User');
 const Progress = require('../models/Progress.model');
 const Attempt = require('../models/Attempt');
 
@@ -191,6 +191,24 @@ const getUserStats = async (req, res) => {
   }
 };
 
+// @desc    Soft delete user account
+// @route   PATCH /api/users/profile/delete
+const softDeleteAccount = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    
+    user.isDeleted = true;
+    // Anonymize user data
+    user.email = `deleted_${user._id}@deleted.local`;
+    await user.save();
+    
+    res.json({ success: true, message: 'Account deactivated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ========== EXPORT ALL CONTROLLERS ==========
 module.exports = {
   getUsers,
@@ -200,5 +218,6 @@ module.exports = {
   updateUser,
   deleteUser,
   getUserProgress,
-  getUserStats
+  getUserStats,
+  softDeleteAccount
 };

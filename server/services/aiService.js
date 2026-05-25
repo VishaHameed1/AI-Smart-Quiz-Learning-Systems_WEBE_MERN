@@ -1,15 +1,18 @@
-const { model, fastModel } = require('../config/gemini');
+const Groq = require('groq-sdk');
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 class AIService {
   // Generate questions with retry logic
   static async generateQuestionsWithRetry(prompt, maxRetries = 3) {
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const completion = await groq.chat.completions.create({
+          messages: [{ role: 'user', content: prompt }],
+          model: "llama-3.3-70b-versatile",
+          response_format: { type: "json_object" },
+        });
+        const text = completion.choices[0]?.message?.content;
         
-        // Try to extract JSON
         const jsonMatch = text.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
           return JSON.parse(jsonMatch[0]);
@@ -31,9 +34,12 @@ class AIService {
     Return only a number between 1-10.`;
     
     try {
-      const result = await fastModel.generateContent(prompt);
-      const response = await result.response;
-      const rating = parseInt(response.text().trim());
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: "llama-3.3-70b-versatile",
+      });
+      const text = completion.choices[0]?.message?.content;
+      const rating = parseInt(text.trim());
       return Math.min(10, Math.max(1, rating || 5));
     } catch (error) {
       console.error('Difficulty estimation failed:', error);
@@ -52,9 +58,12 @@ class AIService {
     Keep it under 50 words.`;
     
     try {
-      const result = await fastModel.generateContent(prompt);
-      const response = await result.response;
-      return response.text().trim();
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: "llama-3.3-70b-versatile",
+      });
+      const text = completion.choices[0]?.message?.content;
+      return text.trim();
     } catch (error) {
       return "Think carefully about the key concepts in this topic.";
     }
@@ -68,9 +77,12 @@ class AIService {
     Return as JSON: {"recommendations": ["topic1", "topic2", "topic3"]}`;
     
     try {
-      const result = await fastModel.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const completion = await groq.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: "llama-3.3-70b-versatile",
+        response_format: { type: "json_object" },
+      });
+      const text = completion.choices[0]?.message?.content;
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);

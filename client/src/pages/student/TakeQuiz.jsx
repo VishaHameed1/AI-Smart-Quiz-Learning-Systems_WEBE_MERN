@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import GlassCard from '../../components/common/GlassCard';
@@ -38,7 +38,7 @@ const TakeQuiz = () => {
   useEffect(() => {
     if (questions.length > 0 && currentIndex < questions.length) {
       const q = questions[currentIndex];
-      const limit = q.timeLimit || 60;
+      const limit = quiz?.duration || 60; // Use quiz duration as default for now
       setTimeLeft(limit);
       setQuestionStart(Date.now());
       setSelectedAnswer(null);
@@ -49,7 +49,7 @@ const TakeQuiz = () => {
     if (!questions.length || currentIndex >= questions.length) return;
     
     const timer = setInterval(() => {
-      setTimeLeft((t) => {
+      setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(timer);
           handleAnswer(null, true);
@@ -67,7 +67,7 @@ const TakeQuiz = () => {
     
     const questionId = questions[currentIndex]._id;
     const currentQuestion = questions[currentIndex];
-    const limit = currentQuestion.timeLimit || 60;
+    const limit = quiz?.duration || 60; // Use quiz duration as default for now
     const elapsed = Math.round((Date.now() - questionStart) / 1000);
     const timeTaken = timedOut ? limit : Math.min(elapsed, limit);
 

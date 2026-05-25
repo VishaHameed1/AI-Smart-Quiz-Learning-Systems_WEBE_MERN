@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, BookOpen, BarChart2, Clock, PlusCircle } from 'lucide-react';
+import { Users, BookOpen, BarChart2, Clock, PlusCircle, Folder } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
@@ -13,6 +13,8 @@ const TeacherDashboard = () => {
   const [endDate, setEndDate] = useState(new Date());
   const [trendLoading, setTrendLoading] = useState(false);
   const [trendError, setTrendError] = useState(null);
+  const [dashboardStats, setDashboardStats] = useState(null);
+  const [folderCount, setFolderCount] = useState(0);
 
   const fetchTrendData = async () => {
     try {
@@ -44,15 +46,34 @@ const TeacherDashboard = () => {
       }
     };
 
+    const fetchDashboardData = async () => {
+      try {
+        const response = await api.get('/dashboard/teacher');
+        setDashboardStats(response.data.data);
+      } catch (err) {
+        console.error('Error fetching dashboard stats:', err);
+      }
+    };
+
+    const fetchFolders = async () => {
+      try {
+        const res = await api.get('/teacher/folders');
+        setFolderCount(res.data.data?.length || 0);
+      } catch (err) {}
+    };
+
     fetchRecentActivities();
     fetchTrendData(); // Initial fetch
+    fetchDashboardData();
+    fetchFolders();
   }, []);
 
   const stats = [
-    { label: 'Total Students', value: '142', icon: <Users className="w-6 h-6" />, color: 'bg-blue-500' },
-    { label: 'Active Quizzes', value: '12', icon: <BookOpen className="w-6 h-6" />, color: 'bg-emerald-500' },
-    { label: 'Avg. Class Score', value: '82%', icon: <BarChart2 className="w-6 h-6" />, color: 'bg-violet-500' },
-    { label: 'Pending Reviews', value: '5', icon: <Clock className="w-6 h-6" />, color: 'bg-amber-500' },
+    { label: 'Total Students', value: dashboardStats?.totalStudentsWhoAttemptedMyQuizzes || '0', icon: <Users className="w-6 h-6" />, color: 'bg-blue-500' },
+    { label: 'Total Quizzes', value: dashboardStats?.totalQuizzesCreated || '0', icon: <BookOpen className="w-6 h-6" />, color: 'bg-emerald-500' },
+    { label: 'Avg. Score', value: `${dashboardStats?.averageScoreOnMyQuizzes || 0}%`, icon: <BarChart2 className="w-6 h-6" />, color: 'bg-violet-500' },
+    { label: 'Enrollment Requests', value: dashboardStats?.pendingEnrollmentsCount || '0', icon: <Clock className="w-6 h-6" />, color: dashboardStats?.pendingEnrollmentsCount > 0 ? 'bg-rose-500' : 'bg-slate-500' },
+    { label: 'Content Folders', value: folderCount, icon: <Folder className="w-6 h-6" />, color: 'bg-cyan-500' },
   ];
 
   useEffect(() => {

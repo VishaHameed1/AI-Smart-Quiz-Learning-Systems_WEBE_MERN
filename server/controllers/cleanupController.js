@@ -1,5 +1,5 @@
 const Attempt = require('../models/Attempt');
-const Review = require('../models/Review');
+const Review = require('../models/ReviewQueue.model');
 const AIQuestionCache = require('../models/AIQuestionCache');
 
 exports.fullCleanup = async (req, res) => {

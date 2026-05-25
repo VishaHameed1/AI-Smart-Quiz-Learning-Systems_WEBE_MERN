@@ -70,7 +70,7 @@ const ProfilePage = () => {
             </div>
             <h3 className="text-white font-semibold">{form.name || 'User'}</h3>
             <p className="text-slate-400 text-sm">{profile?.email}</p>
-            <p className="text-slate-500 text-xs mt-2">Member since {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A'}</p>
+            <p className="text-slate-500 text-xs mt-2">Member since {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A'}</p> {/* Assuming createdAt is returned */}
           </GlassCard>
 
           {/* Edit Form */}

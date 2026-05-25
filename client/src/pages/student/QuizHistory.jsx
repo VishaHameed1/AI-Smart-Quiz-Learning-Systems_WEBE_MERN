@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿﻿import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 
 const QuizHistory = () => {
@@ -28,15 +28,15 @@ const QuizHistory = () => {
             {attempts.map((attempt) => (
               <div key={attempt._id} className="glass-panel p-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900">{attempt.quizTitle || 'Quiz'}</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">{attempt.quizId?.title || 'Quiz'}</h3>
                   <p className="text-sm text-slate-500 mt-1">
                     {new Date(attempt.createdAt).toLocaleDateString()} · {new Date(attempt.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="text-2xl font-semibold text-slate-900">{attempt.percentageScore}%</p>
-                    <p className="text-xs text-slate-500">{attempt.score}/{attempt.questionsCount} correct</p>
+                    <p className="text-2xl font-semibold text-slate-900">{Math.round(attempt.percentageScore || 0)}%</p>
+                    <p className="text-xs text-slate-500">{attempt.score || 0}/{attempt.quizId?.totalQuestions || 0} correct</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${attempt.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                     {attempt.passed ? 'Passed' : 'Failed'}

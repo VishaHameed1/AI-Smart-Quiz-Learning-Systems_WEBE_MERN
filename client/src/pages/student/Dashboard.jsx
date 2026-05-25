@@ -2,24 +2,30 @@ import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import GlassCard from '../../components/common/GlassCard';
 import CyanButton from '../../components/common/CyanButton';
-import { useAuth } from '../../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { Folder as FolderIcon, ChevronRight } from 'lucide-react';
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profileRes, progressRes] = await Promise.all([
+        const [profileRes, progressRes, foldersRes] = await Promise.all([
           api.get('/gamification/profile').catch(() => ({ data: { data: null } })),
-          api.get('/progress/overview').catch(() => ({ data: { data: null } }))
+          api.get('/progress/overview').catch(() => ({ data: { data: null } })),
+          api.get('/student/folders').catch(() => ({ data: { data: [] } }))
         ]);
         setProfile(profileRes.data?.data);
         setProgress(progressRes.data?.data);
+        setFolders(foldersRes.data?.data || []);
       } catch (error) {
         console.error('Dashboard fetch error:', error);
       } finally {
@@ -29,19 +35,13 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#030712] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00f2ff]"></div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingSpinner />;
 
   const stats = [
-    { label: 'Total XP', value: profile?.totalXp ?? 0, icon: '⚡' },
-    { label: 'Quizzes Completed', value: profile?.quizzesCompleted ?? 0, icon: '📝' },
-    { label: 'Average Score', value: `${Math.round(profile?.avgScore ?? 0)}%`, icon: '📊' },
-    { label: 'Current Streak', value: `${profile?.currentStreak ?? 0} days`, icon: '🔥' }
+    { label: 'Total XP', value: profile?.totalXp || 0, icon: '⚡' },
+    { label: 'Level', value: profile?.level || 1, icon: '🏆' },
+    { label: 'Current Streak', value: `${profile?.currentStreak || 0} days`, icon: '🔥' },
+    { label: 'Quizzes Completed', value: progress?.totalQuizzes || 0, icon: '📋' },
   ];
 
   const recentAttempts = progress?.recentAttempts || [];
@@ -97,6 +97,25 @@ const Dashboard = () => {
             )}
           </GlassCard>
 
+          {/* Enrolled Folders Section */}
+          <GlassCard glowLine>
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <FolderIcon className="w-5 h-5 text-cyan-400" /> Assigned Folders
+            </h2>
+            <div className="space-y-3">
+              {folders.length > 0 ? (
+                folders.slice(0, 3).map(folder => (
+                  <div key={folder._id} onClick={() => navigate('/quizzes')} className="p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 cursor-pointer flex justify-between items-center transition">
+                    <span className="text-sm font-medium text-slate-200">{folder.name}</span>
+                    <ChevronRight size={14} className="text-slate-500" />
+                  </div>
+                ))
+              ) : (
+                <p className="text-slate-500 text-sm text-center py-4 italic">No specific folders assigned yet.</p>
+              )}
+            </div>
+          </GlassCard>
+
           {/* Topic Mastery Section */}
           <GlassCard glowLine>
             <h2 className="text-xl font-semibold text-white mb-4">Topic Mastery</h2>
@@ -118,6 +137,19 @@ const Dashboard = () => {
               <p className="text-slate-400 text-center py-8">Complete quizzes to see topic mastery</p>
             )}
           </GlassCard>
+
+          {/* Teachers Section Link */}
+          <GlassCard glowLine className="lg:col-span-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-white">Find Your Teachers</h2>
+                <p className="text-slate-400 text-sm mt-1">Browse available teachers and join their private quizzes.</p>
+              </div>
+              <Link to="/teachers">
+                <CyanButton size="md" glow>Browse Teachers →</CyanButton>
+              </Link>
+            </div>
+          </GlassCard>
         </div>
 
         {/* Action Buttons */}
@@ -126,6 +158,11 @@ const Dashboard = () => {
             <CyanButton size="lg" glow>
               🎯 Start New Quiz
             </CyanButton>
+          </Link>
+          <Link to="/teachers">
+            <button className="px-6 py-3 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition">
+              👨‍🏫 Browse Teachers
+            </button>
           </Link>
           <Link to="/review">
             <button className="px-6 py-3 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 transition">

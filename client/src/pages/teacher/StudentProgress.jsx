@@ -28,10 +28,10 @@ const StudentProgress = () => {
         <div className="rounded-xl bg-slate-900 p-6 text-slate-200">Loading progress...</div>
       ) : (
         <div className="space-y-4">
-          {(progress?.attempts || []).length === 0 ? (
+          {(progress?.quizHistory || []).length === 0 ? (
             <div className="rounded-xl bg-slate-900 p-6 text-slate-200">No progress data available yet.</div>
           ) : (
-            progress.attempts.map((attempt) => (
+            progress.quizHistory.map((attempt) => (
               <div key={attempt._id} className="rounded-xl bg-slate-900 p-6">
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
                   <div>

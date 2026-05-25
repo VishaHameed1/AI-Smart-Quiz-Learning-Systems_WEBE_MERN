@@ -4,20 +4,24 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 require('dotenv').config();
+const errorHandler = require('./middleware/errorHandler');
 
 const quizRoutes = require('./routes/quizRoutes');
 const questionRoutes = require('./routes/questionRoutes');
 const attemptRoutes = require('./routes/attemptRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const adaptiveRoutes = require('./routes/adaptiveRoutes');
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const reviewRoutes = require('./routes/reviewRoutes');
-const gamificationRoutes = require('./routes/gamificationRoutes');
-const progressRoutes = require('./routes/progressRoutes');
+const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
+const reviewRoutes = require('./routes/review.routes');
+const gamificationRoutes = require('./routes/gamification.routes');
+const progressRoutes = require('./routes/progress.routes');
 const cleanupRoutes = require('./routes/cleanupRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
+const studentEnrollmentRoutes = require('./routes/studentEnrollment.routes');
+const studentFolderRoutes = require('./routes/studentFolder.routes');
 const adminRoutes = require('./routes/adminRoutes');
+const dashboardRoutes = require('./routes/dashboard.routes');
 
 const app = express();
 
@@ -53,18 +57,15 @@ app.use('/api/gamification', gamificationRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/cleanup', cleanupRoutes);
 app.use('/api/teacher', teacherRoutes);
+app.use('/api/student/enrollments', studentEnrollmentRoutes);
+app.use('/api/student/folders', studentFolderRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-app.use((err, req, res, next) => {
-  console.error('Internal Server Error:', err.stack);
-  res.status(500).json({
-    success: false,
-    message: err.message || 'Something went wrong on the server'
-  });
-});
+app.use(errorHandler);
 
 module.exports = app;

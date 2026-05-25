@@ -1,4 +1,4 @@
-﻿import api from './api';
+﻿﻿import api from './api';
 
 export const getAllQuizzes = async (params = {}) => {
   const response = await api.get('/quizzes', { params });

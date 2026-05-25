@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { loadUser } from './store/slices/authSlice';
 import { AuthProvider } from './context/AuthContext';
 import { QuizProvider } from './context/QuizContext';
 import PrivateRoute from './components/common/PrivateRoute';
-import RoleSelection from './pages/onboarding/RoleSelection';
-import TeacherOnboarding from './pages/onboarding/TeacherOnboarding';
-import AdminOnboarding from './pages/onboarding/AdminOnboarding';
+import Sidebar from './components/common/Sidebar'; // Added Sidebar import
+import ToastNotification from './components/common/ToastNotification'; // Added ToastNotification import
+import LoadingSpinner from './components/common/LoadingSpinner';
 
 // Pages
+// Consolidate imports to avoid redundancy and improve readability
 import Showcase from './pages/shared/Showcase';
 import LoginPage from './pages/shared/LoginPage';
 import RegisterPage from './pages/shared/RegisterPage';
@@ -15,41 +18,45 @@ import QuizList from './pages/student/QuizList';
 import StudentDashboard from './pages/student/Dashboard';
 import QuizHistory from './pages/student/QuizHistory';
 import Progress from './pages/student/Progress';
-import TakeQuiz from './pages/student/TakeQuiz';
 import QuizResult from './pages/student/QuizResult';
 import ProfilePage from './pages/shared/ProfilePage';
 import CreateQuiz from './pages/teacher/CreateQuiz';
 import ManageQuestions from './pages/teacher/ManageQuestions';
 import QuestionBank from './pages/teacher/QuestionBank';
 import AIQuestionGen from './pages/teacher/AIQuestionGen';
-import TeacherDashboard from './pages/teacher/TeacherDashboard';
+import TeacherDashboard from './components/common/TeacherDashboard';
 import TeacherQuizzes from './pages/teacher/TeacherQuizzes';
 import TeacherStudents from './pages/teacher/TeacherStudents';
 import StudentProgress from './pages/teacher/StudentProgress';
+import TeachersList from './pages/student/TeachersList'; // New
 import TeacherAnalytics from './pages/teacher/TeacherAnalytics';
+import EnrollmentRequests from './pages/teacher/EnrollmentRequests'; // New
+import TeacherFolders from './pages/teacher/TeacherFolders'; // New
 import TeacherClassReport from './pages/teacher/TeacherClassReport';
 import EditQuiz from './pages/teacher/EditQuiz';
 import Review from './pages/student/Review';
 import Leaderboard from './pages/student/Leaderboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
+import AdminFolderManagement from './pages/admin/AdminFolderManagement'; // New
 import AdminCleanup from './pages/admin/AdminCleanup';
+import QuizPaperGenerator from './pages/teacher/QuizPaperGenerator';
+import TakeQuiz from './pages/student/TakeQuiz'; // Moved TakeQuiz here for clarity
 
 // ========== PERSON B - USER & LEARNING PAGES ==========
 // Auth Pages
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
 import ForgotPassword from './components/auth/ForgotPassword';
 import ResetPassword from './components/auth/ResetPassword';
 import VerifyEmail from './components/auth/VerifyEmail';
 import TwoFactorAuth from './components/auth/TwoFactorAuth';
 
 // Dashboard Pages
-import DashboardPage from './pages/DashboardPage';
-import StudentDashboard from './components/dashboard/StudentDashboard';
-import TeacherDashboard from './components/common/TeacherDashboard';
-import AdminDashboard from './components/dashboard/AdminDashboard';
+// import DashboardPage from './pages/DashboardPage'; // This was a generic dashboard, now using role-specific ones
 
+// Onboarding Pages
+import RoleSelection from './RoleSelection'; // Moved from server/middleware
+import TeacherOnboarding from './TeacherOnboarding'; // Moved from server/middleware
+import AdminOnboarding from './AdminOnboarding';
 // Progress & Learning Pages
 import ProgressPage from './pages/ProgressPage';
 import ProgressOverview from './components/progress/ProgressOverview';
@@ -70,7 +77,6 @@ import LevelProgress from './components/gamification/LevelProgress';
 import Achievements from './components/gamification/Achievements';
 
 // Profile Pages
-import ProfilePage from './pages/ProfilePage';
 import ProfileSettings from './components/profile/ProfileSettings';
 import LearningPreferences from './components/profile/LearningPreferences';
 import NotificationSettings from './components/profile/NotificationSettings';
@@ -91,21 +97,49 @@ import HomePage from './pages/HomePage';
 import Navbar from './components/common/Navbar';
 
 function App() {
+  const dispatch = useDispatch();
+  const { loading: authLoading } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    // Attempt to load user from token on app start
+    if (localStorage.getItem('token')) {
+      dispatch(loadUser());
+    }
+  }, [dispatch]);
+
+  if (authLoading) {
+    return <LoadingSpinner />;
+  }
+
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <QuizProvider>
           <div className="min-h-screen bg-slate-950 text-white">
             <Navbar />
-            <main className="container mx-auto px-4 pt-28 pb-12">
+            <main className="container mx-auto px-4 pt-28 pb-12"> {/* Adjusted padding for fixed navbar */}
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Showcase />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/showcase" element={<Showcase />} />
-                <Route path="/dashboard" element={
-                  <PrivateRoute allowedRoles={["student","teacher","admin"]}>
+                <Route path="/role-selection" element={
+                  <PrivateRoute>
+                    <RoleSelection />
+                  </PrivateRoute>
+                } />
+                <Route path="/onboarding/teacher" element={
+                  <PrivateRoute allowedRoles={['teacher']}>
+                    <TeacherOnboarding />
+                  </PrivateRoute>
+                } />
+                <Route path="/onboarding/admin" element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <AdminOnboarding />
+                  </PrivateRoute>
+                } />
+                <Route path="/dashboard/student" element={
+                  <PrivateRoute allowedRoles={["student"]}>
                     <StudentDashboard />
                   </PrivateRoute>
                 } />
@@ -119,6 +153,11 @@ function App() {
                 <Route path="/quizzes" element={
                   <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
                     <QuizList />
+                  </PrivateRoute>
+                } />
+                <Route path="/teachers" element={
+                  <PrivateRoute allowedRoles={['student']}>
+                    <TeachersList />
                   </PrivateRoute>
                 } />
                 <Route path="/quiz/:quizId/take/:attemptId" element={
@@ -168,7 +207,7 @@ function App() {
                     <TeacherQuizzes />
                   </PrivateRoute>
                 } />
-                <Route path="/teacher/dashboard" element={
+                <Route path="/dashboard/teacher" element={
                   <PrivateRoute allowedRoles={['teacher', 'admin']}>
                     <TeacherDashboard />
                   </PrivateRoute>
@@ -208,7 +247,22 @@ function App() {
                     <EditQuiz />
                   </PrivateRoute>
                 } />
-                <Route path="/admin/dashboard" element={
+                <Route path="/teacher/enrollment-requests" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <EnrollmentRequests />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/folders" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <TeacherFolders />
+                  </PrivateRoute>
+                } />
+                <Route path="/teacher/quiz/:quizId/print" element={
+                  <PrivateRoute allowedRoles={['teacher', 'admin']}>
+                    <QuizPaperGenerator />
+                  </PrivateRoute>
+                } />
+                <Route path="/dashboard/admin" element={
                   <PrivateRoute allowedRoles={['admin']}>
                     <AdminDashboard />
                   </PrivateRoute>
@@ -218,6 +272,11 @@ function App() {
                     <UserManagement />
                   </PrivateRoute>
                 } />
+                <Route path="/admin/folders" element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <AdminFolderManagement />
+                  </PrivateRoute>
+                } />
                 <Route path="/admin/cleanup" element={
                   <PrivateRoute allowedRoles={['admin']}>
                     <AdminCleanup />
@@ -225,6 +284,7 @@ function App() {
                 } />
               </Routes>
             </main>
+            <ToastNotification />
           </div>
         </QuizProvider>
       </AuthProvider>

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
@@ -8,15 +8,33 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(`/dashboard/${user.role}`);
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(email, password);
-      toast.success('Login successful!');
-      navigate('/dashboard');
+      const res = await login(email, password);
+      
+      if (res && res.success) {
+        toast.success('Login successful!');
+        const userObj = res.data;
+
+        // Check for onboarding or role-specific dashboard
+        if (!userObj.onboardingCompleted) {
+          if (userObj.role === 'teacher') navigate('/onboarding/teacher');
+          else if (userObj.role === 'admin') navigate('/onboarding/admin');
+          else navigate('/role-selection'); 
+        } else {
+          navigate(`/dashboard/${userObj.role}`);
+        }
+      }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Login failed');
     } finally {

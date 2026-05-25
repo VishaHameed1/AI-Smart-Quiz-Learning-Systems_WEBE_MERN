@@ -63,6 +63,8 @@ const quizSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true,
+  // ✅ Force Mongoose to look into the 'quizzes' collection
+  collection: 'quizzes',
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });

@@ -12,7 +12,7 @@ const questionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['mcq', 'multiple-select', 'true-false', 'fill-blanks', 'matching', 'code'],
+    enum: ['mcq', 'multiple-select', 'true-false', 'fill-blanks', 'matching', 'code', 'theoretical'],
     default: 'mcq'
   },
   options: [String],

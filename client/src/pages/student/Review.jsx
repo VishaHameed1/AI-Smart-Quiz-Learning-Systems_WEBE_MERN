@@ -21,8 +21,8 @@ const Review = () => {
   const fetchQueue = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/review/due');
-      setQueue(res.data.data || []);
+      const res = await api.get('/review/due'); // Use the correct endpoint for due items
+      setQueue(res.data.data || []); // This should return an array of review items
     } catch (err) { 
       console.error('Failed to load review queue', err); 
     }
@@ -31,7 +31,7 @@ const Review = () => {
 
   const fetchStats = async () => {
     try {
-      const res = await api.get('/review/stats');
+      const res = await api.get('/gamification/profile'); // Fetch gamification profile for streak
       setStats(res.data.data);
     } catch (err) { 
       console.error('Failed to load stats', err); 
@@ -102,11 +102,11 @@ const Review = () => {
         {stats && (
           <div className="grid grid-cols-3 gap-4 mb-8">
             <GlassCard className="text-center p-4">
-              <div className="text-cyan-400 text-2xl font-bold">{stats.reviewStreak || 0}</div>
+              <div className="text-cyan-400 text-2xl font-bold">{stats.currentStreak || 0}</div>
               <div className="text-slate-400 text-sm">Day Streak</div>
             </GlassCard>
             <GlassCard className="text-center p-4">
-              <div className="text-cyan-400 text-2xl font-bold">{stats.masteredItems || 0}</div>
+              <div className="text-cyan-400 text-2xl font-bold">{stats.totalXp || 0}</div>
               <div className="text-slate-400 text-sm">Mastered</div>
             </GlassCard>
             <GlassCard className="text-center p-4">

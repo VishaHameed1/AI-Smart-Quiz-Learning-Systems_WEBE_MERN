@@ -4,17 +4,15 @@ import GlassCard from '../../components/common/GlassCard';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import CyanButton from '../../components/common/CyanButton';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 
 const Leaderboard = () => {
   const navigate = useNavigate();
   const [leaders, setLeaders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user: currentUser } = useSelector((state) => state.auth); // Get current user from Redux
 
-  useEffect(() => { 
-    fetchLeaders(); 
-    fetchCurrentUser();
-  }, []);
+  useEffect(() => { fetchLeaders(); }, []);
 
   const fetchLeaders = async () => {
     setLoading(true);
@@ -25,15 +23,6 @@ const Leaderboard = () => {
       console.error('Failed to fetch leaderboard', err); 
     }
     setLoading(false);
-  };
-
-  const fetchCurrentUser = async () => {
-    try {
-      const res = await api.get('/auth/me');
-      setCurrentUser(res.data);
-    } catch (err) {
-      console.error('Failed to fetch current user', err);
-    }
   };
 
   const getMedalColor = (rank) => {
@@ -93,7 +82,7 @@ const Leaderboard = () => {
               </div>
               <div className="glass-card px-6 py-3 rounded-xl text-center min-w-[120px] border-yellow-500/30">
                 <div className="font-bold text-xl text-white truncate">{top3[0]?.name || 'Champion'}</div>
-                <div className="text-yellow-400 font-bold text-lg">{top3[0]?.xp || 0} XP</div>
+                <div className="text-yellow-400 font-bold text-lg">{top3[0]?.totalXp || 0} XP</div>
                 <div className="text-xs text-slate-500">Level {top3[0]?.level || 1}</div>
               </div>
             </div>
@@ -105,7 +94,7 @@ const Leaderboard = () => {
               </div>
               <div className="glass-card px-4 py-2 rounded-xl text-center min-w-[100px]">
                 <div className="font-bold text-white truncate">{top3[2]?.name || 'Player'}</div>
-                <div className="text-cyan-400 font-bold">{top3[2]?.xp || 0} XP</div>
+                <div className="text-cyan-400 font-bold">{top3[2]?.totalXp || 0} XP</div>
                 <div className="text-xs text-slate-500">Level {top3[2]?.level || 1}</div>
               </div>
             </div>
@@ -151,7 +140,7 @@ const Leaderboard = () => {
                     )}
                   </div>
                   <div className="col-span-3 text-right">
-                    <span className="text-cyan-400 font-bold">{user.xp || 0}</span>
+                    <span className="text-cyan-400 font-bold">{user.totalXp || 0}</span>
                     <span className="text-slate-500 text-sm ml-1">XP</span>
                   </div>
                   <div className="col-span-2 text-right">

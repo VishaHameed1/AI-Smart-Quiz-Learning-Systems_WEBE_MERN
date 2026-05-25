@@ -26,6 +26,11 @@ const attemptSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    status: {
+      type: String,
+      enum: ['correct', 'incorrect', 'pending-grade'],
+      default: 'correct'
+    },
     timeTaken: Number, // seconds
     pointsEarned: {
       type: Number,
@@ -51,7 +56,7 @@ const attemptSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['in-progress', 'completed', 'abandoned'],
+    enum: ['in-progress', 'completed', 'abandoned', 'completed-pending-review'],
     default: 'in-progress'
   },
   adaptiveHistory: [{
@@ -76,13 +81,15 @@ const attemptSchema = new mongoose.Schema({
 // Calculate score before saving
 attemptSchema.pre('save', function(next) {
   if (this.answers && this.answers.length > 0) {
-    const totalQuestions = this.answers.length;
-    const correctAnswers = this.answers.filter(a => a.isCorrect).length;
-    this.score = correctAnswers;
-    this.percentageScore = (correctAnswers / totalQuestions) * 100;
+    // Only calculate score for answers that have been graded
+    const gradedAnswers = this.answers.filter(a => a.status !== 'pending-grade');
+    const correctAnswers = gradedAnswers.filter(a => a.isCorrect).length;
     
-    // Calculate points
-    this.totalPoints = this.answers.reduce((sum, a) => sum + (a.pointsEarned || 0), 0);
+    this.score = correctAnswers;
+    this.percentageScore = this.answers.length > 0 ? (correctAnswers / this.answers.length) * 100 : 0;
+    
+    // Track user actual score in earnedPoints
+    this.earnedPoints = this.answers.reduce((sum, a) => sum + (a.pointsEarned || 0), 0);
   }
   next();
 });

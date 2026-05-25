@@ -1,11 +1,12 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿﻿import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const QuestionBank = () => {
   const [questions, setQuestions] = useState([]);
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
-  const { token } = useAuth();
+  const { token } = useAuth(); // Import useAuth
 
   useEffect(() => {
     if (topic) {

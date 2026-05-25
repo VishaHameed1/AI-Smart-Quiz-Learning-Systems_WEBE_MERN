@@ -1,90 +1,114 @@
 const Attempt = require('../models/Attempt');
+const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
+const User = require('../models/User');
 
-exports.getOverview = async (req, res) => {
+// Helper to calculate mastery for a topic
+const calculateTopicMastery = (attempts) => {
+  const topicStats = {}; // { topic: { total: N, correct: M } }
+
+  attempts.forEach(attempt => {
+    attempt.answers.forEach(answer => {
+      const question = answer.questionId; // Assuming questionId is populated or directly contains topic
+      if (question && question.topic) {
+        if (!topicStats[question.topic]) {
+          topicStats[question.topic] = { total: 0, correct: 0 };
+        }
+        topicStats[question.topic].total++;
+        if (answer.isCorrect) {
+          topicStats[question.topic].correct++;
+        }
+      }
+    });
+  });
+
+  const mastery = {};
+  for (const topic in topicStats) {
+    mastery[topic] = (topicStats[topic].correct / topicStats[topic].total) * 100;
+  }
+  return mastery;
+};
+
+// @desc    Get student's overall progress overview
+// @route   GET /api/progress/overview
+const getOverview = async (req, res) => {
   try {
     const userId = req.user._id;
-    const attempts = await Attempt.find({ userId }).sort({ createdAt: -1 }).limit(50).populate('quizId');
 
-    const last7 = attempts.slice(0, 7).map(a => ({ date: a.createdAt, score: a.percentageScore || 0 }));
-    const quizzesCompleted = attempts.filter(a => a.status === 'completed').length;
-    const avgScore = attempts.length ? attempts.reduce((s, a) => s + (a.percentageScore || 0), 0) / attempts.length : 0;
+    const attempts = await Attempt.find({ userId, status: 'completed' })
+      .populate('quizId', 'title')
+      .populate('answers.questionId', 'topic'); // Populate topic for mastery calculation
 
-    // Topic mastery simple aggregation from attempts' answers is heavy; return empty for now
-    const topicMastery = {};
+    const totalQuizzes = attempts.length;
+    const totalScore = attempts.reduce((sum, a) => sum + (a.percentageScore || 0), 0);
+    const avgScore = totalQuizzes > 0 ? totalScore / totalQuizzes : 0;
 
-    res.json({ success: true, data: { recentPerformance: last7, quizzesCompleted, avgScore, topicMastery } });
+    const topicMastery = calculateTopicMastery(attempts);
+
+    const recentPerformance = attempts
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 5)
+      .map(a => ({
+        quizTitle: a.quizId ? a.quizId.title : 'N/A',
+        score: a.percentageScore,
+        date: a.createdAt,
+        xpEarned: a.earnedPoints,
+      }));
+
+    res.json({
+      success: true,
+      data: {
+        totalQuizzes,
+        avgScore: avgScore.toFixed(2),
+        topicMastery,
+        recentPerformance,
+        // Add more stats like totalXP, level from Gamification model if needed
+      }
+    });
   } catch (error) {
-    console.error('Progress Overview Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching progress overview:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.getTopic = async (req, res) => {
+// @desc    Get student's activity heatmap data
+// @route   GET /api/progress/heatmap
+const getHeatmap = async (req, res) => {
   try {
-    const { topic } = req.params;
-    const attempts = await Attempt.find({ userId: req.user._id, 'answers.questionId': { $exists: true } }).populate('answers.questionId');
-    // compute mastery for topic
-    let attempted = 0, correct = 0;
+    const userId = req.user._id;
+    const attempts = await Attempt.find({ userId, status: 'completed' }).select('createdAt');
+
+    const heatmapData = {};
     attempts.forEach(attempt => {
-      attempt.answers.forEach(a => {
-        if (a.questionId && a.questionId.topic === topic) {
-          attempted++;
-          if (a.isCorrect) correct++;
-        }
-      });
+      const date = attempt.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
+      heatmapData[date] = (heatmapData[date] || 0) + 1;
     });
-    const mastery = attempted ? Math.round((correct / attempted) * 100) : 0;
-    res.json({ success: true, data: { topic, mastery, attempted, correct } });
+
+    res.json({ success: true, data: heatmapData });
   } catch (error) {
-    console.error('GetTopic Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching heatmap:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.getHistory = async (req, res) => {
+// @desc    Get student's skill gap analysis
+// @route   GET /api/progress/skill-gap
+const getSkillGap = async (req, res) => {
   try {
-    const attempts = await Attempt.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(200).populate('quizId');
-    const history = attempts.map(a => ({ date: a.createdAt, quiz: a.quizId?.title || 'Quiz', score: a.percentageScore || 0, xp: a.earnedPoints || 0 }));
-    res.json({ success: true, data: history });
+    const userId = req.user._id;
+    const attempts = await Attempt.find({ userId, status: 'completed' }).populate('answers.questionId', 'topic');
+    const topicMastery = calculateTopicMastery(attempts);
+
+    const skillGap = Object.entries(topicMastery)
+      .filter(([, mastery]) => mastery < 70) // Example threshold for skill gap
+      .sort(([, a], [, b]) => a - b)
+      .map(([topic, mastery]) => ({ topic, mastery: mastery.toFixed(2) }));
+
+    res.json({ success: true, data: skillGap });
   } catch (error) {
-    console.error('GetHistory Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error fetching skill gap:', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.getHeatmap = async (req, res) => {
-  try {
-    const attempts = await Attempt.find({ userId: req.user._id }).sort({ createdAt: -1 });
-    const map = {};
-    attempts.forEach(a => {
-      const day = a.createdAt.toISOString().slice(0,10);
-      map[day] = (map[day] || 0) + 1;
-    });
-    res.json({ success: true, data: map });
-  } catch (error) {
-    console.error('GetHeatmap Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-};
-
-exports.getSkillGap = async (req, res) => {
-  try {
-    // simple weak topics where mastery < 50
-    const attempts = await Attempt.find({ userId: req.user._id }).populate('answers.questionId');
-    const topicStats = {};
-    attempts.forEach(attempt => {
-      attempt.answers.forEach(a => {
-        const topic = a.questionId?.topic || 'unknown';
-        topicStats[topic] = topicStats[topic] || { attempted: 0, correct: 0 };
-        topicStats[topic].attempted++;
-        if (a.isCorrect) topicStats[topic].correct++;
-      });
-    });
-    const weak = Object.entries(topicStats).map(([topic, s]) => ({ topic, mastery: s.attempted ? Math.round((s.correct/s.attempted)*100) : 0 })).filter(t => t.mastery < 50);
-    res.json({ success: true, data: weak });
-  } catch (error) {
-    console.error('GetSkillGap Error:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
-  }
-};
+module.exports = { getOverview, getHeatmap, getSkillGap };

@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Brain, Trophy, Filter, Search } from 'lucide-react';
+import api from '../../services/api';
+import { Clock, Brain, Trophy, Filter, Search, Folder as FolderIcon } from 'lucide-react';
 import { getAllQuizzes } from '../../services/quizService';
 import { startQuiz as startQuizAttempt } from '../../services/attemptService';
 import GlassCard from '../../components/common/GlassCard';
 import CyanButton from '../../components/common/CyanButton';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import toast from 'react-hot-toast';
 
 const QuizList = () => {
   const [quizzes, setQuizzes] = useState([]);
+  const [enrollments, setEnrollments] = useState({});
+  const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ type: '', difficulty: '', search: '' });
   const navigate = useNavigate();
@@ -20,8 +24,19 @@ const QuizList = () => {
   const fetchQuizzes = async () => {
     try {
       setLoading(true);
-      const data = await getAllQuizzes(filters);
-      setQuizzes(data || []);
+      const [quizRes, folderRes, enrollRes] = await Promise.all([
+        getAllQuizzes(filters),
+        api.get('/student/folders'),
+        api.get('/student/enrollments/my-requests')
+      ]);
+      setQuizzes(quizRes || []);
+      setFolders(folderRes.data.data || []);
+      
+      const enrollMap = {};
+      (enrollRes.data.data || []).forEach(e => {
+        enrollMap[e.quiz._id || e.quiz] = e.status;
+      });
+      setEnrollments(enrollMap);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
       setQuizzes([]);
@@ -42,6 +57,18 @@ const QuizList = () => {
         localStorage.removeItem('token');
         navigate('/login');
       }
+    }
+  };
+
+  const handleEnrollRequest = async (quizId) => {
+    try {
+      const res = await api.post(`/student/enrollments/request`, { quizId });
+      if (res.data.success) {
+        toast.success("Enrollment request sent!");
+        setEnrollments(prev => ({ ...prev, [quizId]: 'pending' }));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send request");
     }
   };
 
@@ -125,34 +152,36 @@ const QuizList = () => {
           </div>
         </GlassCard>
 
-        {/* Quiz Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quizzes.map((quiz) => (
-            <GlassCard key={quiz._id} className="p-6" hover3d glowLine>
-              <div className="flex items-center justify-between mb-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(quiz.difficulty)}`}>
-                  {quiz.difficulty?.charAt(0).toUpperCase() + quiz.difficulty?.slice(1) || 'Medium'}
-                </span>
-                <div className="flex items-center gap-1 text-slate-400 text-sm">
-                  {getTypeIcon(quiz.type)}
-                  <span className="capitalize">{quiz.type || 'Practice'}</span>
+        {/* Grouped by Folders */}
+        {folders.length > 0 && (
+          <div className="space-y-12 mb-16">
+            {folders.map(folder => (
+              <div key={folder._id}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-cyan-500/10 rounded-lg">
+                    <FolderIcon className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">{folder.name}</h2>
+                    <p className="text-sm text-slate-500">{folder.description}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {folder.quizzes.map(quiz => (
+                    <QuizItem key={quiz._id} quiz={quiz} enrollments={enrollments} onStart={handleStartQuiz} onEnroll={handleEnrollRequest} />
+                  ))}
                 </div>
               </div>
-              
-              <h3 className="text-xl font-bold text-white mb-2">{quiz.title}</h3>
-              <p className="text-slate-400 text-sm mb-4 line-clamp-2">{quiz.description || 'No description available'}</p>
-              
-              <div className="flex items-center justify-between text-sm text-slate-400 mb-5">
-                <span>📋 {quiz.totalQuestions || 0} questions</span>
-                <span>⏱️ {quiz.duration || 0} min</span>
-                <span>🎯 {quiz.passingScore || 60}% to pass</span>
-              </div>
-              
-              <CyanButton onClick={() => handleStartQuiz(quiz._id)} fullWidth size="sm" glow>
-                Start Quiz
-              </CyanButton>
-            </GlassCard>
-          ))}
+            ))}
+          </div>
+        )}
+
+        {/* General Quizzes Header */}
+        <h2 className="text-xl font-bold text-white mb-6">All Quizzes</h2>
+
+        {/* Quiz Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quizzes.map(quiz => <QuizItem key={quiz._id} quiz={quiz} enrollments={enrollments} onStart={handleStartQuiz} onEnroll={handleEnrollRequest} />)}
         </div>
         
         {quizzes.length === 0 && (
@@ -162,6 +191,37 @@ const QuizList = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const QuizItem = ({ quiz, enrollments, onStart, onEnroll }) => {
+  const status = enrollments[quiz._id];
+  const needsEnrollment = quiz.requiresEnrollment;
+  const isEnrolled = !needsEnrollment || status === 'accepted';
+  const isPending = status === 'pending';
+
+  return (
+    <GlassCard className="flex flex-col h-full group" glowLine>
+      <div className="flex-1">
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition">{quiz.title}</h3>
+          {needsEnrollment && (
+            <span className="text-[10px] font-black uppercase tracking-tighter px-2 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded">Private</span>
+          )}
+        </div>
+        <p className="text-slate-400 text-sm mb-6 line-clamp-3">{quiz.description}</p>
+      </div>
+
+      <div className="mt-auto pt-6 border-t border-white/5">
+        {isEnrolled ? (
+          <CyanButton onClick={() => onStart(quiz._id)} fullWidth glow>Take Quiz</CyanButton>
+        ) : isPending ? (
+          <div className="w-full py-3 text-center rounded-full bg-slate-800 text-slate-500 font-bold text-sm border border-white/5 cursor-not-allowed">Enrollment Pending...</div>
+        ) : (
+          <CyanButton onClick={() => onEnroll(quiz._id)} fullWidth glow className="!bg-emerald-500 !text-slate-950">Enroll Now</CyanButton>
+        )}
+      </div>
+    </GlassCard>
   );
 };
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Users, Activity, Cpu, Settings, MoreVertical } from 'lucide-react';
-import axios from 'axios';
+import { Shield, Users, Activity, Cpu, Settings, MoreVertical, BookOpen, BarChart2 } from 'lucide-react';
+import api from '../../services/api';
 import LoadingSpinner from './LoadingSpinner';
-import Table from './Table'; // Import the new Table component
+import { Link } from 'react-router-dom';
+import GlassCard from './GlassCard';
 
 const AdminDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,7 +17,7 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('/api/users');
+      const response = await api.get('/users');
       // Handle response format from Person A/B structure
       const userData = response.data.data || response.data;
       setUsers(Array.isArray(userData) ? userData : []);
@@ -59,7 +60,7 @@ const AdminDashboard = () => {
 
   const handleRoleChange = async (id, newRole) => {
     try {
-      await axios.put(`/api/users/${id}`, { role: newRole });
+      await api.put(`/users/${id}`, { role: newRole });
       setUsers(users.map(u => u.id === id ? { ...u, role: newRole } : u));
     } catch (error) {
       console.error(`Failed to update user ${id} to role ${newRole}:`, error);
