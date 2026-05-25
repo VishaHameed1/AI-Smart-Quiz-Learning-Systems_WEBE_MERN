@@ -4,6 +4,7 @@ const Attempt = require('../models/Attempt');
 const User = require('../models/User');
 const Quiz = require('../models/Quiz');
 const Enrollment = require('../models/Enrollment.model');
+const Folder = require('../models/Folder.model');
 
 // @desc    Get student dashboard data
 // @route   GET /api/dashboard/student
@@ -14,15 +15,47 @@ const getStudentDashboard = async (req, res) => {
     // Get progress
     const progress = await Progress.find({ userId });
     
+    // Get enrolled folders for the student
+    const enrolledFolders = await Folder.find({ 
+      allowedUsers: userId 
+    }).populate('createdBy', 'name email').populate('quizzes', 'title type');
+
     // Get gamification stats
     const gamification = await Gamification.findOne({ userId });
     
     // Get recent attempts
+    const allUserAttempts = await Attempt.find({ userId, status: 'completed' });
     const recentAttempts = await Attempt.find({ userId })
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('quizId', 'title');
     
+    // Filter available quizzes based on enrollment and folders
+    const folderQuizIds = enrolledFolders.flatMap(f => f.quizzes.map(q => q._id));
+    const availableQuizzes = await Quiz.find({
+      $or: [ 
+        { isPublished: true, isPublic: true }, 
+        { _id: { $in: folderQuizIds } } 
+      ]
+    }).populate('createdBy', 'name');
+
+    const quizzesWithStatus = availableQuizzes.map(quiz => {
+      const attempts = allUserAttempts.filter(a => 
+        a.quizId?._id?.toString() === quiz._id.toString() || 
+        a.quizId?.toString() === quiz._id.toString()
+      );
+      
+      // Logic: 1 mark = 1 minute duration
+      const duration = quiz.duration || (quiz.totalQuestions * 2);
+
+      return {
+        ...quiz.toObject(),
+        isCompleted: quiz.type === 'competitive' && attempts.length > 0,
+        canAttempt: quiz.type !== 'competitive' || attempts.length === 0,
+        calculatedDuration: duration
+      };
+    });
+
     // Calculate overall mastery
     let totalMastery = 0;
     progress.forEach(p => { totalMastery += p.masteryScore; });
@@ -36,7 +69,9 @@ const getStudentDashboard = async (req, res) => {
         totalXP: gamification?.totalXp || 0,
         level: gamification?.level || 1,
         currentStreak: gamification?.currentStreak || 0,
-        recentAttempts
+        recentAttempts,
+        enrolledFolders,
+        quizzes: quizzesWithStatus
       }
     });
   } catch (error) {
@@ -100,6 +135,10 @@ const getAdminDashboard = async (req, res) => {
     const totalUsers = await User.countDocuments();
     const totalQuizzes = await Quiz.countDocuments();
     const totalAttempts = await Attempt.countDocuments();
+    
+    // Get folders and quizzes with creator details for the dashboard
+    const folders = await Folder.find().populate('createdBy', 'name email');
+    const quizzes = await Quiz.find().populate('createdBy', 'name email');
 
     res.json({
       success: true,
@@ -107,6 +146,8 @@ const getAdminDashboard = async (req, res) => {
         totalUsers,
         totalQuizzes,
         totalAttempts,
+        folders,
+        quizzes
       }
     });
   } catch (error) {

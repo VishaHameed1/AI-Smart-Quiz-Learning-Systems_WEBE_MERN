@@ -39,6 +39,8 @@ import Leaderboard from './pages/student/Leaderboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import AdminFolderManagement from './pages/admin/AdminFolderManagement'; // New
+import FolderDetail from './pages/student/FolderDetail'; // New
+import AdminQuizManagement from './pages/admin/AdminQuizManagement'; // New
 import AdminCleanup from './pages/admin/AdminCleanup';
 import QuizPaperGenerator from './pages/teacher/QuizPaperGenerator';
 import TakeQuiz from './pages/student/TakeQuiz'; // Moved TakeQuiz here for clarity
@@ -153,6 +155,11 @@ function App() {
                 <Route path="/quizzes" element={
                   <PrivateRoute allowedRoles={['student', 'teacher', 'admin']}>
                     <QuizList />
+                  </PrivateRoute>
+                } />
+                <Route path="/quizzes/folder/:folderId" element={
+                  <PrivateRoute allowedRoles={['student']}>
+                    <FolderDetail />
                   </PrivateRoute>
                 } />
                 <Route path="/teachers" element={
@@ -275,6 +282,11 @@ function App() {
                 <Route path="/admin/folders" element={
                   <PrivateRoute allowedRoles={['admin']}>
                     <AdminFolderManagement />
+                  </PrivateRoute>
+                } />
+                <Route path="/admin/quizzes" element={
+                  <PrivateRoute allowedRoles={['admin']}>
+                    <AdminQuizManagement />
                   </PrivateRoute>
                 } />
                 <Route path="/admin/cleanup" element={

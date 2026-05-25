@@ -1,15 +1,16 @@
 const ReviewQueue = require('../models/ReviewQueue.model');
+const Attempt = require('../models/Attempt');
 
-// @desc    Get due reviews for user
-// @route   GET /api/review/due
-const getDueReviews = async (req, res) => {
+// @desc    Get interactive items waiting in the user's active Spaced Review queue
+// @route   GET /api/reviews/spaced-queue
+const getSpacedQueue = async (req, res) => {
   try {
-    const dueReviews = await ReviewQueue.find({
+    const queue = await ReviewQueue.find({
       userId: req.user._id,
       nextReviewDate: { $lte: new Date() }
     }).populate('questionId');
     
-    res.json({ success: true, count: dueReviews.length, data: dueReviews });
+    res.json({ success: true, count: queue.length, data: queue });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -29,8 +30,24 @@ const getDueCount = async (req, res) => {
   }
 };
 
-// @desc    Add question to review queue
-// @route   POST /api/review/add
+// @desc    Fetches all past quiz submissions for the logged-in student
+// @route   GET /api/reviews/history
+const getHistory = async (req, res) => {
+  try {
+    const history = await Attempt.find({ 
+      userId: req.user._id,
+      status: { $in: ['completed', 'completed-pending-review'] }
+    })
+    .populate('quizId', 'title difficulty type')
+    .populate('answers.questionId')
+    .sort({ createdAt: -1 });
+
+    res.json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const addToReviewQueue = async (req, res) => {
   try {
     const { questionId, easeFactor, interval, repetitions } = req.body;
@@ -83,4 +100,11 @@ const updateReview = async (req, res) => {
   }
 };
 
-module.exports = { getDueReviews, getDueCount, addToReviewQueue, updateReview }; 
+module.exports = { 
+  getDueReviews: getSpacedQueue, // Alias for backward compatibility if needed
+  getSpacedQueue,
+  getDueCount,
+  getHistory,
+  addToReviewQueue, 
+  updateReview 
+}; 

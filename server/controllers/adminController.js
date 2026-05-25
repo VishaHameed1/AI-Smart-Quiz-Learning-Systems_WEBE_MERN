@@ -88,7 +88,7 @@ const deleteFolder = async (req, res) => {
 // @route   GET /api/admin/quizzes
 const getAllQuizzes = async (req, res) => {
   try {
-    const quizzes = await Quiz.find().select('title createdBy').populate('createdBy', 'name');
+    const quizzes = await Quiz.find().select('title createdBy difficulty type isPublished createdAt').populate('createdBy', 'name email');
     res.json({ success: true, data: quizzes });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -160,23 +160,20 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { name, email, role, password } = req.body;
-    const updateFields = { name, email, role };
 
-    if (password) {
-      const user = await User.findById(req.params.id);
-      user.password = password; // Pre-save hook will hash it
-      await user.save();
-    }
-
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { $set: updateFields },
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (role) user.role = role;
+    if (password) user.password = password; // Pre-save hook will hash it
+
+    await user.save();
+    
+    user.password = undefined;
     res.json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

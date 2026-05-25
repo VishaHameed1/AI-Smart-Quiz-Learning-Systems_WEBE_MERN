@@ -59,10 +59,14 @@ const EnrollmentRequests = () => {
                     <Clock className="w-3 h-3" />
                     Requested for: <span className="font-semibold">{request.quiz.title}</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
-                    <Folder className="w-3 h-3" />
-                    Folder: <span className="text-slate-300">{request.folderName}</span>
-                  </div>
+                  {request.folderName && request.folderName !== 'No Folder' && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[10px] font-bold border border-cyan-500/20 flex items-center gap-1 uppercase tracking-wider">
+                        <Folder size={10} />
+                        Folder Access: {request.folderName}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">

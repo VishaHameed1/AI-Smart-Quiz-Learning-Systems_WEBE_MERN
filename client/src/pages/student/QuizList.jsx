@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../../services/api';
 import { Clock, Brain, Trophy, Filter, Search, Folder as FolderIcon } from 'lucide-react';
 import { getAllQuizzes } from '../../services/quizService';
@@ -14,6 +14,7 @@ const QuizList = () => {
   const [enrollments, setEnrollments] = useState({});
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [folderRequestStatus, setFolderRequestStatus] = useState({}); // To track pending folder requests
   const [filters, setFilters] = useState({ type: '', difficulty: '', search: '' });
   const navigate = useNavigate();
 
@@ -37,6 +38,12 @@ const QuizList = () => {
         enrollMap[e.quiz._id || e.quiz] = e.status;
       });
       setEnrollments(enrollMap);
+
+      const initialFolderRequestStatus = {};
+      (folderRes.data.data || []).forEach(f => {
+        initialFolderRequestStatus[f._id] = f.hasPendingRequest ? 'pending' : 'none';
+      });
+      setFolderRequestStatus(initialFolderRequestStatus);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
       setQuizzes([]);
@@ -62,13 +69,44 @@ const QuizList = () => {
 
   const handleEnrollRequest = async (quizId) => {
     try {
-      const res = await api.post(`/student/enrollments/request`, { quizId });
+      const res = await api.post(`/quizzes/${quizId}/request-access`);
       if (res.data.success) {
         toast.success("Enrollment request sent!");
         setEnrollments(prev => ({ ...prev, [quizId]: 'pending' }));
+        fetchQuizzes(); // Refresh list to update button state
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to send request");
+    }
+  };
+
+  const handleRequestFolderAccess = async (folderId) => {
+    try {
+      setFolderRequestStatus(prev => ({ ...prev, [folderId]: 'sending' }));
+      const res = await api.post(`/student/folders/${folderId}/request-access`);
+      if (res.data.success) {
+        toast.success("Folder access request sent!");
+        setFolderRequestStatus(prev => ({ ...prev, [folderId]: 'pending' }));
+        fetchQuizzes(); // Re-fetch to update folder status
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to send folder access request");
+      setFolderRequestStatus(prev => ({ ...prev, [folderId]: 'none' }));
+    }
+  };
+
+  const handleCancelFolderAccess = async (folderId) => {
+    try {
+      setFolderRequestStatus(prev => ({ ...prev, [folderId]: 'sending' }));
+      const res = await api.delete(`/student/folders/${folderId}/cancel-request`);
+      if (res.data.success) {
+        toast.success("Folder access request cancelled");
+        setFolderRequestStatus(prev => ({ ...prev, [folderId]: 'none' }));
+        fetchQuizzes();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to cancel request");
+      setFolderRequestStatus(prev => ({ ...prev, [folderId]: 'pending' }));
     }
   };
 
@@ -103,122 +141,102 @@ const QuizList = () => {
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white">Available Quizzes</h1>
-          <p className="text-slate-400 mt-2">Test your knowledge with our interactive quizzes</p>
+          <h1 className="text-4xl font-bold text-white">Available Content Folders</h1>
+          <p className="text-slate-400 mt-2">Browse teacher folders and discover new quizzes.</p>
         </div>
 
-        {/* Filters - Glass Style */}
-        <GlassCard className="p-5 mb-6" glowLine>
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-cyan-400" />
-              <span className="text-sm font-medium text-slate-300">Filters:</span>
-            </div>
-            
-            <select
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm focus:outline-none focus:border-cyan-400/50"
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-            >
-              <option value="">All Types</option>
-              <option value="timed">Timed</option>
-              <option value="practice">Practice</option>
-              <option value="adaptive">Adaptive</option>
-              <option value="competitive">Competitive</option>
-            </select>
-            
-            <select
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm focus:outline-none focus:border-cyan-400/50"
-              value={filters.difficulty}
-              onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
-            >
-              <option value="">All Difficulties</option>
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
-              <option value="expert">Expert</option>
-            </select>
-            
-            <div className="relative flex-1 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input
-                type="text"
-                placeholder="Search quizzes..."
-                className="w-full pl-10 pr-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-400/50"
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              />
-            </div>
-          </div>
-        </GlassCard>
-
-        {/* Grouped by Folders */}
-        {folders.length > 0 && (
-          <div className="space-y-12 mb-16">
+        {/* Top Section: Folders */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {folders.map(folder => (
-              <div key={folder._id}>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-cyan-500/10 rounded-lg">
-                    <FolderIcon className="w-5 h-5 text-cyan-400" />
+              <Link key={folder._id} to={`/quizzes/folder/${folder._id}`}>
+                <GlassCard className="p-6 cursor-pointer hover:border-cyan-500/50 transition-all group h-full">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="p-4 bg-cyan-500/10 rounded-2xl group-hover:scale-110 transition-transform">
+                      <FolderIcon className="w-8 h-8 text-cyan-400" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 px-2 py-1 bg-white/5 rounded">
+                      {folder.quizzes?.length || 0} Quizzes
+                    </span>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white">{folder.name}</h2>
-                    <p className="text-sm text-slate-500">{folder.description}</p>
+                  <h2 className="text-2xl font-bold text-white mb-2">{folder.name}</h2>
+                  <p className="text-slate-400 text-sm line-clamp-2 mb-4">{folder.description}</p>
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+                  <span className="text-[11px] text-slate-500 font-mono">By: {folder.createdBy?.email}</span>
+                    <span className="text-cyan-400 text-sm font-semibold group-hover:translate-x-1 transition-transform">View Folder →</span>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {folder.quizzes.map(quiz => (
-                    <QuizItem key={quiz._id} quiz={quiz} enrollments={enrollments} onStart={handleStartQuiz} onEnroll={handleEnrollRequest} />
-                  ))}
-                </div>
-              </div>
+                </GlassCard>
+              </Link>
             ))}
           </div>
-        )}
-
-        {/* General Quizzes Header */}
-        <h2 className="text-xl font-bold text-white mb-6">All Quizzes</h2>
-
-        {/* Quiz Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quizzes.map(quiz => <QuizItem key={quiz._id} quiz={quiz} enrollments={enrollments} onStart={handleStartQuiz} onEnroll={handleEnrollRequest} />)}
-        </div>
         
-        {quizzes.length === 0 && (
+        {folders.length === 0 && (
           <GlassCard className="text-center py-12">
             <p className="text-slate-400">No quizzes found. Check back later!</p>
           </GlassCard>
         )}
+
+        <hr className="my-16 border-white/5" />
+
+        {/* Bottom Section: All Available Quizzes */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-white">All Available Quizzes</h1>
+          <p className="text-slate-400 mt-2">Test your knowledge with our individual assessments.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quizzes.map(quiz => (
+            <QuizItem 
+              key={quiz._id} 
+              quiz={quiz} 
+              enrollments={enrollments} 
+              onStart={handleStartQuiz} 
+              onEnroll={handleEnrollRequest} 
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
 const QuizItem = ({ quiz, enrollments, onStart, onEnroll }) => {
-  const status = enrollments[quiz._id];
-  const needsEnrollment = quiz.requiresEnrollment;
-  const isEnrolled = !needsEnrollment || status === 'accepted';
-  const isPending = status === 'pending';
+  // Backend aggregated access or local fallback
+  const status = quiz.enrollmentStatus || enrollments[quiz._id];
+  const hasAccess = quiz.hasAccess ?? (!quiz.requiresEnrollment || status === 'accepted');
+  const isPending = quiz.isPending ?? (status === 'pending');
+  
+  // Competitive quizzes can only be taken once
+  const alreadyTaken = quiz.type === 'competitive' && quiz.isCompleted;
 
   return (
     <GlassCard className="flex flex-col h-full group" glowLine>
       <div className="flex-1">
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition">{quiz.title}</h3>
-          {needsEnrollment && (
+          <div className="flex gap-2">
+            {quiz.type === 'competitive' && <span className="text-[10px] font-bold uppercase px-2 py-1 bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded">Competitive</span>}
+            {quiz.requiresEnrollment && (
             <span className="text-[10px] font-black uppercase tracking-tighter px-2 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded">Private</span>
-          )}
+            )}
+          </div>
         </div>
-        <p className="text-slate-400 text-sm mb-6 line-clamp-3">{quiz.description}</p>
+        <p className="text-slate-400 text-sm mb-4 line-clamp-3">{quiz.description}</p>
+        <span className="text-[11px] text-slate-500 font-mono mb-6 block">By: {quiz.createdBy?.email || 'System'}</span>
       </div>
 
       <div className="mt-auto pt-6 border-t border-white/5">
-        {isEnrolled ? (
-          <CyanButton onClick={() => onStart(quiz._id)} fullWidth glow>Take Quiz</CyanButton>
+        {alreadyTaken ? (
+          <button disabled className="w-full py-3 text-center rounded-full bg-emerald-500/10 text-emerald-400 font-bold text-sm border border-emerald-500/20 cursor-not-allowed">
+            Completed (1/1 Attempt Used)
+          </button>
+        ) : hasAccess ? (
+          <CyanButton onClick={() => onStart(quiz._id)} fullWidth glow>Start Quiz</CyanButton>
         ) : isPending ? (
-          <div className="w-full py-3 text-center rounded-full bg-slate-800 text-slate-500 font-bold text-sm border border-white/5 cursor-not-allowed">Enrollment Pending...</div>
+          <button disabled className="w-full py-3 text-center rounded-full bg-slate-800 text-slate-500 font-bold text-sm border border-white/5 cursor-not-allowed">
+            Pending Approval
+          </button>
         ) : (
-          <CyanButton onClick={() => onEnroll(quiz._id)} fullWidth glow className="!bg-emerald-500 !text-slate-950">Enroll Now</CyanButton>
+          <CyanButton onClick={() => onEnroll(quiz._id)} fullWidth glow>Request Access</CyanButton>
         )}
       </div>
     </GlassCard>

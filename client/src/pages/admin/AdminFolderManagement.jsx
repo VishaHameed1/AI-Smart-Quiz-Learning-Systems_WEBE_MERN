@@ -14,6 +14,7 @@ const AdminFolderManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTermQuizzes, setSearchTermQuizzes] = useState('');
   const [searchTermUsers, setSearchTermUsers] = useState('');
+  const [searchTermFolders, setSearchTermFolders] = useState('');
   const [currentFolder, setCurrentFolder] = useState({ 
     name: '', 
     description: '', 
@@ -30,8 +31,8 @@ const AdminFolderManagement = () => {
     try {
       const [folderRes, quizRes, userRes] = await Promise.all([
         api.get('/admin/folders'),
-        api.get('/admin/quizzes'), // Get all quizzes for selection
-        api.get('/admin/users-for-selection') // Get all users for selection
+        api.get('/admin/quizzes'),
+        api.get('/admin/users-for-selection')
       ]);
       setFolders(folderRes.data.data);
       setAllQuizzes(quizRes.data.data);
@@ -97,22 +98,41 @@ const AdminFolderManagement = () => {
   const filteredQuizzes = allQuizzes.filter(q => q.title.toLowerCase().includes(searchTermQuizzes.toLowerCase()));
   const filteredUsers = allUsers.filter(u => u.name.toLowerCase().includes(searchTermUsers.toLowerCase()) || u.email.toLowerCase().includes(searchTermUsers.toLowerCase()));
 
+  // Filter folders based on name or teacher's email
+  const filteredFolders = folders.filter(folder => 
+    folder.name.toLowerCase().includes(searchTermFolders.toLowerCase()) ||
+    folder.createdBy?.email?.toLowerCase().includes(searchTermFolders.toLowerCase())
+  );
+
   if (loading) return <LoadingSpinner />;
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-bold text-white">Admin Folder Management</h1>
           <p className="text-slate-400">Manage all content folders across the platform.</p>
         </div>
-        <CyanButton onClick={() => { setCurrentFolder({ name: '', description: '', createdBy: '', quizzes: [], allowedUsers: [] }); setIsModalOpen(true); }} glow>
-          <Plus className="w-4 h-4 mr-2" /> Create New Folder
-        </CyanButton>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+          <div className="relative w-full sm:w-72">
+            <input
+              type="text"
+              placeholder="Search folders or teacher email..."
+              className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-cyan-500 transition-colors"
+              value={searchTermFolders}
+              onChange={(e) => setSearchTermFolders(e.target.value)}
+            />
+            <span className="absolute right-3 top-2.5 opacity-40">🔍</span>
+          </div>
+          <CyanButton onClick={() => { setCurrentFolder({ name: '', description: '', createdBy: '', quizzes: [], allowedUsers: [] }); setIsModalOpen(true); }} glow>
+            <Plus className="w-4 h-4 mr-2" /> Create New Folder
+          </CyanButton>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {folders.map(folder => (
+        {filteredFolders.length > 0 ? (
+          filteredFolders.map(folder => (
           <GlassCard key={folder._id} className="p-6 flex flex-col h-full" hover3d>
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-cyan-500/10 rounded-xl">
@@ -129,13 +149,24 @@ const AdminFolderManagement = () => {
             </div>
             <h3 className="text-xl font-bold text-white mb-2">{folder.name}</h3>
             <p className="text-slate-400 text-sm mb-4 flex-1">{folder.description}</p>
-            <p className="text-slate-500 text-xs mb-4">Created by: {folder.createdBy?.name || 'N/A'}</p>
+            <div className="mb-4">
+              <p className="text-slate-500 text-[10px] uppercase tracking-wider font-semibold">Created By</p>
+              <p className="text-slate-200 text-xs font-medium">{folder.createdBy?.name || 'N/A'}</p>
+              {folder.createdBy?.email && (
+                <p className="text-cyan-400/80 text-[10px] font-mono mt-0.5">{folder.createdBy.email}</p>
+              )}
+            </div>
             <div className="flex gap-4 text-xs font-medium text-slate-300">
               <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {folder.quizzes?.length || 0} Quizzes</span>
               <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {folder.allowedUsers?.length || 0} Users</span>
             </div>
           </GlassCard>
-        ))}
+          ))
+        ) : (
+          <div className="col-span-full py-20 text-center text-slate-500 italic">
+            No folders found matching your search.
+          </div>
+        )}
       </div>
 
       {isModalOpen && (
@@ -172,7 +203,7 @@ const AdminFolderManagement = () => {
                 >
                   <option value="">-- Select Creator --</option>
                   {allUsers.map(user => (
-                    <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
+                    <option key={user._id} value={user._id}>{user.name} ({user.email})</option>
                   ))}
                 </select>
               </div>
@@ -199,7 +230,12 @@ const AdminFolderManagement = () => {
                           currentFolder.quizzes.includes(q._id) ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
                         }`}
                       >
-                        {q.title} ({q.createdBy?.name || 'N/A'})
+                        <div className="flex flex-col">
+                          <span className="font-medium text-slate-200">{q.title}</span>
+                          <span className="text-[10px] opacity-60">
+                            By: {q.createdBy?.name} ({q.createdBy?.email || 'N/A'})
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>

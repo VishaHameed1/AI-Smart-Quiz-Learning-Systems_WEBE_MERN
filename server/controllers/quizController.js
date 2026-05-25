@@ -1,6 +1,8 @@
 const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
 const Attempt = require('../models/Attempt');
+const Folder = require('../models/Folder.model');
+const Enrollment = require('../models/Enrollment.model');
 
 // Create new quiz
 exports.createQuiz = async (req, res) => {
@@ -38,10 +40,10 @@ exports.getAllQuizzes = async (req, res) => {
   try {
     const { page = 1, limit = 10, type, difficulty, search } = req.query;
     
-    // Default: Students only see published quizzes
+    // Base query: only published quizzes
     let query = { isPublished: true };
 
-    // ✅ If teacher is browsing, let them see their own unpublished quizzes too
+    // Teachers/Admins can see their own unpublished content
     if (req.user && (req.user.role === 'teacher' || req.user.role === 'admin')) {
       query = { $or: [{ isPublished: true }, { createdBy: req.user._id }] };
     }
@@ -50,11 +52,40 @@ exports.getAllQuizzes = async (req, res) => {
     if (difficulty) query.difficulty = difficulty;
     if (search) query.title = { $regex: search, $options: 'i' };
     
-    const quizzes = await Quiz.find(query)
+    let quizzes = await Quiz.find(query)
       .populate('createdBy', 'name email')
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
+
+    // Aggregate access flags for students
+    if (req.user && req.user.role === 'student') {
+      const quizIds = quizzes.map(q => q._id);
+
+      const [userAttempts, userEnrollments] = await Promise.all([
+        Attempt.find({ userId: req.user._id, quizId: { $in: quizIds }, status: 'completed' }).select('quizId'),
+        Enrollment.find({ student: req.user._id, quiz: { $in: quizIds } }).select('quiz status')
+      ]);
+
+      const attemptedQuizIds = new Set(userAttempts.map(a => a.quizId.toString()));
+      const enrollMap = {};
+      userEnrollments.forEach(e => { enrollMap[e.quiz.toString()] = e.status; });
+
+      quizzes = quizzes.map(quiz => {
+        const qId = quiz._id.toString();
+        const status = enrollMap[qId] || 'none';
+        const quizObj = quiz.toObject();
+        
+        return {
+          ...quizObj,
+          isCompleted: attemptedQuizIds.has(qId),
+          enrollmentStatus: status,
+          isPending: status === 'pending',
+          // Access rule: either it's public/no-enrollment OR student is accepted
+          hasAccess: quizObj.requiresEnrollment === false || quizObj.isPublic === true || status === 'accepted'
+        };
+      });
+    }
     
     const total = await Quiz.countDocuments(query);
     
@@ -68,6 +99,36 @@ exports.getAllQuizzes = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Request access to a quiz
+// @route   POST /api/quizzes/:id/request-access
+exports.requestAccess = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const quizId = req.params.id;
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
+
+    const existing = await Enrollment.findOne({ student: studentId, quiz: quizId });
+    if (existing) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Already requested: Status is ${existing.status}` 
+      });
+    }
+
+    const enrollment = await Enrollment.create({
+      student: studentId,
+      quiz: quizId,
+      status: 'pending'
+    });
+
+    res.status(201).json({ success: true, data: enrollment });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

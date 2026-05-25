@@ -1,4 +1,4 @@
-﻿﻿import React from 'react';
+﻿﻿﻿﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -25,6 +25,7 @@ const roleNavItems = {
     { label: 'User Management', to: '/admin/users' },
     { label: 'System Analytics', to: '/admin/analytics' },
     { label: 'Folder Management', to: '/admin/folders' }, // New Admin Folder Management
+    { label: 'System Quizzes', to: '/admin/quizzes' }, // Added System Quizzes Tab
     { label: 'Create User', to: '/admin/create-user' },
   ]
 };

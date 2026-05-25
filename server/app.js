@@ -20,7 +20,7 @@ const cleanupRoutes = require('./routes/cleanupRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
 const studentEnrollmentRoutes = require('./routes/studentEnrollment.routes');
 const studentFolderRoutes = require('./routes/studentFolder.routes');
-const adminRoutes = require('./routes/adminRoutes');
+const adminRoutes = require('./routes/admin.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 
 const app = express();

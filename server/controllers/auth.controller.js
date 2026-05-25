@@ -111,13 +111,15 @@ const login = async (req, res, next) => {
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      console.log(`[Login Error] User not found: ${email}`);
+      return res.status(401).json({ success: false, message: 'User not found' });
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      console.log(`[Login Error] Password mismatch for: ${email}`);
+      return res.status(401).json({ success: false, message: 'Password mismatch' });
     }
 
     // Update last active

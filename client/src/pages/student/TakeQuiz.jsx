@@ -1,4 +1,4 @@
-﻿﻿import React, { useState, useEffect } from 'react';
+﻿﻿﻿﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import GlassCard from '../../components/common/GlassCard';
@@ -23,8 +23,13 @@ const TakeQuiz = () => {
         setLoading(true);
         const res = await api.get(`/quizzes/${quizId}`);
         const quizData = res.data.data;
+        const qList = quizData.questions || [];
         setQuiz(quizData);
-        setQuestions(quizData.questions || []);
+        setQuestions(qList);
+        
+        // Rule: 1 Mark = 1 Minute (Total Timer)
+        const totalMarks = qList.reduce((sum, q) => sum + (q.points || 1), 0);
+        setTimeLeft(totalMarks * 60);
       } catch (err) {
         console.error('Error loading quiz:', err);
         navigate('/quizzes');
@@ -36,14 +41,12 @@ const TakeQuiz = () => {
   }, [quizId, navigate]);
 
   useEffect(() => {
+    // Reset question start time for each question, but keep total timeLeft running
     if (questions.length > 0 && currentIndex < questions.length) {
-      const q = questions[currentIndex];
-      const limit = quiz?.duration || 60; // Use quiz duration as default for now
-      setTimeLeft(limit);
       setQuestionStart(Date.now());
       setSelectedAnswer(null);
     }
-  }, [questions, currentIndex]);
+  }, [currentIndex, questions.length]);
 
   useEffect(() => {
     if (!questions.length || currentIndex >= questions.length) return;
@@ -52,7 +55,7 @@ const TakeQuiz = () => {
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(timer);
-          handleAnswer(null, true);
+          autoSubmitQuiz(); // Submit the whole quiz when time runs out
           return 0;
         }
         return t - 1;
@@ -62,14 +65,24 @@ const TakeQuiz = () => {
     return () => clearInterval(timer);
   }, [questions, currentIndex]);
 
+  const autoSubmitQuiz = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await api.post(`/attempts/${attemptId}/complete`);
+      navigate(`/quiz/result/${attemptId}`);
+    } catch (err) {
+      console.error('Auto-submit failed:', err);
+      navigate('/quizzes');
+    }
+  };
+
   const handleAnswer = async (answer, timedOut = false) => {
     if (submitting) return;
     
     const questionId = questions[currentIndex]._id;
-    const currentQuestion = questions[currentIndex];
-    const limit = quiz?.duration || 60; // Use quiz duration as default for now
     const elapsed = Math.round((Date.now() - questionStart) / 1000);
-    const timeTaken = timedOut ? limit : Math.min(elapsed, limit);
+    const timeTaken = elapsed;
 
     setSubmitting(true);
 
@@ -154,25 +167,37 @@ const TakeQuiz = () => {
             <h2 className="text-2xl font-bold text-white mt-2">{currentQuestion.text}</h2>
           </div>
 
-          {/* Options */}
-          <div className="space-y-3 mb-8">
-            {currentQuestion.options?.map((option, idx) => (
-              <button
-                key={idx}
-                onClick={() => !submitting && setSelectedAnswer(option)}
-                className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
-                  selectedAnswer === option
-                    ? 'bg-cyan-500/20 border-2 border-cyan-400 text-white'
-                    : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
-                }`}
+          {/* Question Input Area */}
+          <div className="mb-8">
+            {currentQuestion.type === 'theoretical' ? (
+              <textarea
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white h-40 focus:border-cyan-500 outline-none transition-all"
+                placeholder="Type your detailed answer here..."
+                value={selectedAnswer || ''}
+                onChange={(e) => setSelectedAnswer(e.target.value)}
                 disabled={submitting}
-              >
-                <span className="inline-block w-6 h-6 rounded-full bg-white/10 text-center mr-3 text-sm">
-                  {String.fromCharCode(65 + idx)}
-                </span>
-                {option}
-              </button>
-            ))}
+              />
+            ) : (
+              <div className="space-y-3">
+                {currentQuestion.options?.map((option, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => !submitting && setSelectedAnswer(option)}
+                    className={`w-full text-left p-4 rounded-xl transition-all duration-200 ${
+                      selectedAnswer === option
+                        ? 'bg-cyan-500/20 border-2 border-cyan-400 text-white'
+                        : 'bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10'
+                    }`}
+                    disabled={submitting}
+                  >
+                    <span className="inline-block w-6 h-6 rounded-full bg-white/10 text-center mr-3 text-sm">
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}

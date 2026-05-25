@@ -1,4 +1,4 @@
-﻿﻿import React, { useEffect, useState } from 'react';
+﻿﻿﻿﻿import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../../context/AuthContext';
@@ -70,7 +70,7 @@ const Navbar = () => {
             <Link to="/dashboard/admin" className="nav-link text-sm font-medium text-slate-300 text-cyan-400 font-bold">Admin Panel</Link>
             <Link to="/admin/users" className="nav-link text-sm font-medium text-slate-300">Users</Link>
             <Link to="/admin/folders" className="nav-link text-sm font-medium text-slate-300">Folders</Link>
-            <Link to="/teacher/quizzes" className="nav-link text-sm font-medium text-slate-300">System Quizzes</Link>
+            <Link to="/admin/quizzes" className="nav-link text-sm font-medium text-slate-300">System Quizzes</Link>
             <Link to="/admin/cleanup" className="nav-link text-sm font-medium text-slate-300">Maintenance</Link>
           </div>
         )}

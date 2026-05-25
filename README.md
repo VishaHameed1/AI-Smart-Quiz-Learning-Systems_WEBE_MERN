@@ -18,6 +18,11 @@ AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Googl
 | **Visha Hameed** | Person A | Quiz Core, AI Generation, Adaptive Difficulty, Analytics |
 | **Hadiqa Ehsan** | Person B | Authentication, User Dashboard, Progress Tracking, Spaced Repetition |
 
+## 📄 Documentation
+
+For detailed technical requirements, system models (UML), and architectural layers, please refer to the:
+👉 **Full SRS Document**
+
 ## ✨ Features (Person A)
 
 ### 🎯 Quiz Management
@@ -74,7 +79,7 @@ AI Smart Quiz System is an intelligent, adaptive quiz platform that uses **Googl
 |-----------|------------|
 | **Backend** | Node.js, Express.js |
 | **Database** | MongoDB, Mongoose ODM |
-| **AI/ML** | Google Gemini API (Free) |
+| **AI/ML** | Google Gemini (Generation) & Groq AI (Grading) |
 | **Frontend** | React 18, Tailwind CSS |
 | **State Management** | Context API, Redux Toolkit |
 | **HTTP Client** | Axios |

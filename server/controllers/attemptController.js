@@ -2,6 +2,7 @@ const Attempt = require('../models/Attempt');
 const Quiz = require('../models/Quiz');
 const Question = require('../models/Question');
 const Enrollment = require('../models/Enrollment.model');
+const { scoreTheoreticalAnswer } = require('../utils/groqMarker');
 
 // Start quiz attempt
 exports.startQuiz = async (req, res) => {
@@ -109,16 +110,28 @@ exports.submitAnswer = async (req, res) => {
         answerStatus = isCorrect ? 'correct' : 'incorrect';
       }
     } else if (question.type === 'theoretical') {
-      // Theoretical questions are flagged for manual review
-      isCorrect = false;
-      pointsEarned = 0;
-      answerStatus = 'pending-grade';
+      // Use Groq AI to check relevance instead of exact match
+      const aiResult = await scoreTheoreticalAnswer(
+        question.text,
+        selectedAnswer,
+        question.correctAnswer,
+        question.points || 10
+      );
+      
+      pointsEarned = aiResult.score;
+      // Marks relevance: > 50% accuracy is considered "correct" for mastery tracking
+      isCorrect = pointsEarned >= (question.points || 10) * 0.5; 
+      answerStatus = isCorrect ? 'correct' : 'incorrect';
+      var aiFeedback = aiResult.explanation;
     }
     
-    if (isCorrect && question.type !== 'theoretical') {
-      pointsEarned = question.points || 10;
+    if (isCorrect) {
+      // Only set max points for non-theoretical questions
+      if (question.type !== 'theoretical') {
+        pointsEarned = question.points || 10;
+      }
       question.correctCount = (question.correctCount || 0) + 1;
-    } else if (question.type !== 'theoretical') {
+    } else {
       question.wrongCount = (question.wrongCount || 0) + 1;
     }
 
@@ -135,8 +148,8 @@ exports.submitAnswer = async (req, res) => {
       status: answerStatus,
       timeTaken: timeTaken || 0,
       pointsEarned,
-      feedback: question.type === 'theoretical' 
-        ? 'Waiting for teacher review' 
+      feedback: question.type === 'theoretical'
+        ? aiFeedback
         : (isCorrect ? (question.explanation || 'Correct!') : `Incorrect. ${question.explanation || ''}`)
     });
     
