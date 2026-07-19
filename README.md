@@ -234,8 +234,8 @@ MONGODB_URI=mongodb://localhost:27017/ai-quiz-system
 # JWT Secret (shared with Person B)
 JWT_SECRET=your-super-secret-jwt-key-change-this
 
-# Google Gemini API (FREE)
-GEMINI_API_KEY=your-gemini-api-key-here
+# Groq API (FREE)
+GROQ_API_KEY=your-gemini-api-key-here
 
 # Email Configuration (Optional)
 EMAIL_HOST=smtp.gmail.com
@@ -519,7 +519,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- **Google Gemini AI** - Free API access for question generation
+- **Groq API** - Free API access for question generation
 - **MongoDB Atlas** - Database hosting (optional)
 - **Open Source Community** - For amazing libraries
 - **Institute of Space and Technology, Islamabad** - Institutional Support
